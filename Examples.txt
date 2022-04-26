@@ -1,0 +1,76 @@
+USE: You can run these commands in a JS debugger (like Chrome or Safari console) after loading calc.html.
+(Make sure you copy in all the dependencies as described in the README.)
+
+
+Using the calculator.push() function (which may be all you ever need):
+
+calculator.push("4+3") /* 7 */
+calculator.push("5!") /* 120 */
+calculator.push("pok") /* 'pok' */
+calculator.push("[12,3]+[3,4]") /* [15,7] */
+calculator.push("(12,3)+(3,4)") /* (15,7) */
+
+pushing twice:
+calculator.push([13,-13,4.5,-4.5]); calculator.push("floor") /* [13 -13 4 -5] */
+
+pushing three operands and one operator:
+calculator.push("1..5"); calculator.push("{ iter + }"); calculator.push("{ 10 > }"); calculator.push("doUntil") /* [ 11 12 13 14 11 ] [ 4 4 4 4 3 ] */
+
+pushing a program and then evaluating it:
+calculator.push("≪ 5 → n '6*n!' ≫"); calculator.push("@eval"); /* 720 */
+calculator.push("≪ 5 → n '6*w!' ≫"); calculator.push("@eval"); /* '6*(factorial(w))' */
+calculator.push("≪ [1 2 3] [4 5 6] zip ≫"); calculator.push("@eval"); /* [ 1 4 2 5 3 6 ] */
+calculator.push("≪ [ 1 4 2 5 3 6 ] unzip ≫"); calculator.push("@eval"); /* [1 2 3] [4 5 6] */
+calculator.push("≪ [1 2 3] 4 [+] combine ≫"); calculator.push("EVAL") /* [5 6 7] */
+calculator.push("≪ 1..10 omega ≫"); push("eval"); /* [ 0 1 1 1 1 2 1 1 1 2 ] */
+calculator.push('≪ 1..5 { separator: "." } =options join ≫'); calculator.push("@eval"); /* "1.2.3.4.5" */
+
+
+
+Directly accessing a function in a "function collection" (here: ME.vector):
+
+ME.vector.rtotal([1,2,3,4], 0, 0, 0) == 4
+ME.vector.rotate_left([1,2,3]) /* [2, 3, 1] */
+ME.vector.peval([3, 2, 1], "'x'") /* "'3*x^2+2*x+1'" */
+
+or ME.expr:
+ME.expr.functionForNaturalMath("'f(x, y) = √(x^2+y^2)'")(4,3) /* 5 */
+
+or the top-level ME namespace (which deals with Real types):
+ME.fromHMS(2.3) == 2.5
+
+The same, but without using the "ME" alias (which stands for calculator.functions):
+calculator.functions["@integrate"](0, 6.4, "'FP(x)'", "'x'")
+
+(If you only want some math functions and no stack or interpreter abilities, this may be the way to go.)
+
+
+
+Setting local variables and performing a unit conversion:
+
+calculator.vars.Units = {}
+calculator.vars.Units["Weight [g]"] = {"Ton [t]": 2222.0 }
+calculator.vars.Units["Length [m]"] = {"Inch [in]":0.0254, "Foot [ft]": 0.3048, "Yard [yd]": 0.9144, "Light Year [lyr]": 9.46052840488e15 }
+calculator.convert(1,'m','ft')
+
+and another:
+calculator.vars.Units["Energy [kg*m^2/s^2]"] =  { "Electron Volt [eV]": 1.60219e-19, "Erg [erg]": 0.0000001, "Joule [J]": 1, "Calorie [cal]": 4.1868, "IST [Btu]": 1055.05585262, "EEC [therm]": 105506000 }
+calculator.convert(3000, 'eV', 'J')
+
+(The ND1 calculator feeds copious unit conversion tables like that into the engine via the injection mechanism.)
+
+
+
+Directly creating and evaluating a ProgramFragment:
+calculator.ProgramFragment.fromObj('"neg"').eval('(4,5)') /* (-4, -5) */
+calculator.ProgramFragment.fromObj(["real", "6", ">"]).func(10) /* true */
+calculator.ProgramFragment.fromObj([ "real", "split", "vector.total" ]).func(145) == 10
+(this code-morphs the given program into a JS function)
+
+
+
+Setting an evaluation mode and a variable and then calling the calculator.eval() function for algebraic expression evaluation:
+calculator.mode.operation.eval = "sym";
+calculator.vars.local.p=5; calculator.eval("SIN(x^√2)+p") == "'(sin(pow(x, sqrt(2))))+p'"
+
+(See Unit Tests.txt for the other 3 eval modes.)

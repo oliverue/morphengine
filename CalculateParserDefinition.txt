@@ -1,0 +1,110 @@
+/~
+    Calculate Parser.
+~/
+
+/~ --- Token definitions --- ~/
+
+/~ Characters to be ignored ~/
+!   ' |\t' ;
+
+/~ Non-associative tokens ~/
+    '\('
+    '\)'
+    '\['
+    '\]'
+    ','
+    '\034.+\034'							STRING
+	'true'									BOOL
+	'false'									BOOL
+    '0x[0-9a-fA-F]+'						HEXINT  [* %match = parseInt( %match ); *]
+    '[0-9]+'								INT  	[* %match = parseInt( %match ); *]
+    '[0-9]*[\.]?[0-9]+([Ee][\-\+]?[0-9]+)?' FLOAT	[* %match = parseFloat( %match ); *]
+    '[%\123-\219\221-\251a-z_A-Z][%\123-\251a-z_A-Z0-9\.]*'	IDEN
+    ;
+
+>   ':='
+	'\+='
+	'\*='
+	'\-='
+	'\/=';
+
+>   'cAND'
+	'and'
+	'AND'
+    'cOR'
+	'or'
+	'OR';
+
+>   '=';
+
+>   '!='
+    '<'
+    '>'
+    '<='
+    '>='
+    '==';
+
+<   'mod'
+	'MOD';
+
+<  '\+'
+   '\-';
+
+<  '\*'
+   '/';
+
+>  '\^';
+
+<  '\220';
+
+>  '!';
+
+##
+
+/~ --- Grammar specification --- ~/
+
+p:      e              [* return( %1 ); *]
+        ;
+
+e:      e '+' e        [* %% = calculator.calc(%1, %3, %2); *]
+        | e '-' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | e '*' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | e '/' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | e '^' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | e '=' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | e '==' e     [* %% = calculator.calc(%1, %3, %2); *]
+        | e '<=' e     [* %% = calculator.calc(%1, %3, %2); *]
+        | e '>=' e     [* %% = calculator.calc(%1, %3, %2); *]
+        | e '<' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | e '>' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | e '!=' e     [* %% = calculator.calc(%1, %3, %2); *]
+        | e 'cAND' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | e 'and' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | e 'AND' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | e 'cOR' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | e 'or' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | e 'OR' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | e 'mod' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | e 'MOD' e      [* %% = calculator.calc(%1, %3, %2); *]
+        | '\220' e   [* %% = calculator.calc(%2, %1); *]
+        | e '!'  [* %% = calculator.calc(%1, "factorial"); *]
+        | '-' e &'*'   [* %% = calculator.calc(%2, "neg"); *]
+        | '+' e &'*'   [* %% = %2; *]
+        | '(' e ')'    [* %% = %2; *]
+        | IDEN '(' e ')' [* if (typeof %3 == "number") %% = calculator.calc(%3, %1); else { var arr = %3.split('|'); arr.push(%1); %% = calculator.calc.apply(calculator, arr); } *]
+        | IDEN '(' ')' [* %% = calculator.calc(%1); *]
+        | IDEN ':=' e      [* %% = vars[%1] = %3; *]
+        | IDEN '+=' e      [* %% = (vars[%1] += %3); *]
+        | IDEN '*=' e      [* %% = (vars[%1] *= %3); *]
+        | IDEN '-=' e      [* %% = (vars[%1] -= %3); *]
+        | IDEN '/=' e      [* %% = (vars[%1] /= %3); *]
+        | IDEN           [* %% = calculator.variable(%1); *]
+        | e ',' e [* %% = %1.toString() + '|' + %3.toString(); *]
+        | '[' e ']'  [* %% = '[' + %2.split('|').toString() + ']'; *]
+        | '(' e ',' e ')'   [* %% = '(' + %2.toString() + ',' + %4.toString() + ')'; *]
+        | STRING
+		| BOOL
+        | INT
+        | HEXINT
+        | FLOAT
+        ;

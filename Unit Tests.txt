@@ -1,0 +1,725 @@
+USE: You can run these commands in a JS debugger (like Chrome or Safari console) after loading calc.html.
+
+Enable caught error display:
+calculator.exec = function(cmd, msg, msg2, msg3) { alert(cmd + ": " + msg + ": " + msg2 + ": " + msg3); }
+
+calculator.push("≪ 1 10000 2 FOR r r @dup IF isEven THEN inv - ELSE inv + END -1 STEP ≫"); calculator.push("EVAL")
+
+
+Eval mode:
+numeric:
+calculator.push("≪ 5 =p 'SIN(x^√2)+p+π' num ≫"); calculator.push("@eval"); /* Error: no such variable: x */
+calculator.push("≪ 5 =p 1 =x 'SIN(x^√2)+p+π' num ≫"); calculator.push("@eval"); /* 8.98306363839769 */
+calculator.push("≪ 'fantasy(5)' num ≫"); calculator.push("@eval"); /* Error: no such function: fantasy */
+calculator.push("≪ '√2' num ≫"); calculator.push("@eval"); /* 1.4142135623731 */
+calculator.push("≪ 'e^pi - pi + 9/10^4 + 1/(10^4*ln(2) + sqrt(10)/6)^2' num ≫"); calculator.push("@eval"); /* 20 ~~ 19.999999999999996 */
+calculator.push("≪ 'e^pi - pi + 9/10^4 + 1/(10^4*ln(2) + sqrt(10)/6)^2' EVAL num ≫"); calculator.push("@eval"); /* 20 ~~ 19.999999999999996 */
+calculator.push("≪ '5/3' num ≫"); calculator.push("@eval"); /* 1.66666666666667 */
+halfsym:
+calculator.push("≪ 'π' eval ≫"); calculator.push("@eval"); /* 'π' */
+calculator.push("≪ 'p+π' eval ≫"); calculator.push("@eval"); /* 'p+π' */
+calculator.push("≪ 'e^π' eval ≫"); calculator.push("@eval"); /* 'e^π' */
+calculator.push("≪ 'pok(a, b, c)' eval ≫"); calculator.push("@eval"); /* 'pok(a, b, c)' */
+calculator.push("≪ 5 =p 'SIN(x^√2)+p+π' EVAL ≫"); calculator.push("@eval"); /* '((sin(x^(sqrt(2))))+5)+π' */
+calculator.push("≪ 'fantasy(5)' EVAL ≫"); calculator.push("@eval"); /* 'fantasy(5)' */
+calculator.push("≪ '5/3' EVAL ≫"); calculator.push("@eval"); /* '5/3' */
+calculator.push("≪ '√2' EVAL ≫"); calculator.push("@eval"); /* 'sqrt(2)' */
+calculator.push("≪ 'e^pi - pi + 9/10^4 + 1/(10^4*ln(2) + sqrt(10)/6)^2' EVAL ≫"); calculator.push("@eval"); /* '(((e^(pi))-(pi))+(9/(10000)))+(1/((((10000)*(ln(2)))+((sqrt(10))/6))^2))' */
+sym:
+save = calculator.mode.operation.eval; calculator.mode.operation.eval = "sym";
+calculator.vars.local.p=5; calculator.variable("p") == "p"
+calculator.vars.local.p=5; calculator.eval("SIN(x^√2)+p") == "'(sin(pow(x, sqrt(2))))+p'"
+calculator.eval("fantasy(5)") == "fantasy(5)"
+calculator.mode.operation.eval = save;
+func:
+calculator.vars.local.p=5; calculator.evaluableExpressionForExpression("'SIN(x^√2)+p+π'") == "((sin(pow(x, 1.4142135623730951)))+5)+(3.141592653589793)"
+calculator.evaluableExpressionForExpression("'fantasy(5)'") /* error */
+
+
+Algebraic Assignment: /* FUTURE */
+calculator.push("≪ 'x:=√2' x ≫"); calculator.push("@eval");
+
+Obj property access:
+calculator.push('≪ { a: 5, s: "hi"} =o o.a o.s ≫'); calculator.push("@eval"); /* 5 hi */
+
+Obj display:
+calculator.push('≪ { a: 5, s: "hi"} ≫'); calculator.push("@eval"); /* {"a":5,"s":"hi"} */
+
+any:
+calculator.push('≪ 1..5 [isPrime] any result ≫'); calculator.push("@eval"); /* true {"input":2,"index":1} */
+calculator.push('≪ 20..25 [isSquare] any result.input result.index ≫'); calculator.push("@eval"); /* true 25 5 */
+calculator.push('≪ 20..24 [isSquare] any result.input result.index ≫'); calculator.push("@eval"); /* false undefined undefined */
+
+every:
+calculator.push('≪ 20..24 [isSquare not] every result ≫'); calculator.push("@eval"); /* true {} */
+calculator.push('≪ 20..25 [isSquare not] every result ≫'); calculator.push("@eval"); /* false {"input":25,"index":5} */
+
+join:
+calculator.push('≪ 1..5 join ≫'); calculator.push("@eval"); /* "1,2,3,4,5" */
+calculator.push('≪ 1..5 { separator: "." } =options join ≫'); calculator.push("@eval"); /* "1.2.3.4.5" */
+calculator.push('≪ 1..5 { separator: "" } =options join ≫'); calculator.push("@eval"); /* "12345" */
+
+toName:
+calculator.push('≪ "myvar" toName ≫'); calculator.push("@eval"); /* 'myvar' */
+
+
+Immediate Algebraic:
+calculator.push("≪ 4+6*i ≫"); calculator.push("@eval"); /* (4, 6) */
+calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ 7-(2^3)^4 ]")
+calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ 2^(3^4) ]")
+calculator.push("≪ ( (2^3)^4 ) ≫"); calculator.push("@eval"); /* 4096 */
+fail: calculator.push("≪ (2^3)^4 ≫"); calculator.push("@eval"); /* 4096 */
+fail: calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ (2^3)^4 ]")
+fail: calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ (y=x*3+2)>=top ]")
+calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ 3 (4,5) [3,4] [4 5 6] [[1 2][3 4]] ]") /* ["3", "(4,5)", "[3,4]", "[4 5 6]", "[[1 2][3 4]]"] */
+
+
+Boolean compare in expressions:
+calculator.push("≪ 'false or true' EVAL ≫"); calculator.push("@eval"); /* */
+
+Assignment:
+
+
+Assorted:
+calculator.push("≪ [1 2 3] [4 5 6] zip ≫"); calculator.push("@eval"); /* [ 1 4 2 5 3 6 ] */
+calculator.push("≪ [ 1 4 2 5 3 6 ] unzip ≫"); calculator.push("@eval"); /* [1 2 3] [4 5 6] */
+calculator.push("≪ [1 2 3] [4 5 6] append ≫"); calculator.push("@eval"); /* [ 1 2 3 [ 4 5 6 ] ] */
+calculator.push("≪ [1 2 3] [4 5 6] concat ≫"); calculator.push("@eval"); /* [ 1 2 3 4 5 6 ] */
+calculator.push("≪ [1 2 3] [4 5 6] add ≫"); calculator.push("@eval"); /* [ 5 7 9 ] */
+calculator.push("≪ [1 2 3] [4 5 6] + ≫"); calculator.push("@eval"); /* [ 5 7 9 ] */
+calculator.push("≪ [1 2 3] [4 5 6] augment ≫"); calculator.push("@eval"); /* [[ 1 2 3 ] [ 4 5 6 ]] */
+calculator.push("≪ [1 2] 3 augment ≫"); calculator.push("@eval"); /* [ 1 2 3 ] */
+calculator.push('≪ "str" [7 8 9] + ≫'); calculator.push("@eval"); /* "str[7,8,9]" */
+calculator.push('≪ "str" [7 8 9] append ≫'); calculator.push("@eval"); /* "str[7,8,9]" */
+calculator.push('≪ "str" [7 8 9] augment ≫'); calculator.push("@eval"); /* "str[7,8,9]" */
+
+
+IF:
+calculator.push("≪ IF 1 2 > THEN 27 7 - ELSE 33 3 - END ≫") /* 30; change to "<": 20 */
+calculator.push("≪ IF 1 2 < THEN 27 7 - ELSE IF 2 2 < THEN 1 ELSE 0 END 1 + END ≫") /* 20; change to ">": 1 */
+calculator.push("≪ IF 0 THEN \"1st then\" IF 0 THEN \"2nd then\" ELSE \"2nd else\" END ELSE \"1st else\" END ≫") /* "1st else" */
+calculator.push("≪ IF 1 THEN \"1st then\" IF 0 THEN \"2nd then\" ELSE \"2nd else\" END ELSE \"1st else\" END ≫") /* "1st then" "2nd else" */
+calculator.push("≪ IF 1 THEN \"1st then\" IF 0 THEN \"2nd then\" END ELSE \"1st else\" END ≫") /* "1st then" */
+calculator.push("≪ IF 1 THEN \"1st then\" ELSE \"1st ELSE\" END IF 0 THEN \"2nd then\" END ≫") /* "1st then" */
+calculator.push('≪ IF \'3-3\' THEN "wrong" ELSE "correct" END ≫') /* "3-3" */
+
+CASE:
+prg = '≪ \
+  CASE \
+     DUP "A" == THEN "Alpha" END\
+     DUP "B" == THEN "Beta" END\
+     DUP "G" == THEN "Gamma" END\
+     "Unknown letter"\
+  END\
+  SWAP DROP  @ Get rid of the original letter\
+≫'
+calculator.push('"B"'); calculator.push('≪ CASE DUP "A" == THEN "Alpha" END DUP "B" == THEN "Beta" END DUP "G" == THEN "Gamma" END "Unknown letter" END SWAP DROP ≫'); calculator.push("@eval");
+
+
+Push:
+calculator.push("4+3") /* 7 */
+calculator.push("5!") /* 120 */
+calculator.push("pok") /* 'pok' */
+calculator.push("[12,3]+[3,4]") /* [15,7] */
+calculator.push("(12,3)+(3,4)") /* (15,7) */
+calculator.push("≪ 5 → n '6*n!' ≫"); calculator.push("@eval"); /* 720 */
+calculator.push("≪ 5 → n '6*w!' ≫"); calculator.push("@eval"); /* '6*(factorial(w))' */
+
+
+Evaluation:
+calculator.push("≪ '3/4>0' '6*3!' IFT ≫"); calculator.push("@eval"); /* 36 */
+calculator.push("≪ [['3/4>0' '6*3!']] num ≫"); calculator.push("@eval"); /* [[ true 36 ]] */
+calculator.push("≪ [['3/4>0' '6*3!']] eval ≫"); calculator.push("@eval"); /* [[ '(3/4)>0' '6*(factorial(3))' ]] */
+calculator.push("≪ [['3/4>0' '6*w!']] num ≫"); calculator.push("@eval"); /* [[ '(3/4)>0' '6*(factorial(w))' ]] */
+calculator.push("≪ ['3/4>0' '6*3!'] eval ≫"); calculator.push("@eval"); /* '3/4>0' '6*3!' */
+calculator.push("≪ ['3/4>0' '6*3!'] num ≫"); calculator.push("@eval"); /* [ true 36 ] */
+calculator.push("≪ 5 → n '6*3!' ≫"); calculator.push("@eval"); /* 720 */
+calculator.push("≪ 5 → n '6*w!' ≫"); calculator.push("@eval"); /* '6*(factorial(w))' */
+calculator.push("≪ '(6!, 6+6)' eval ≫"); calculator.push("@eval"); /* '(factorial(6),12)' */
+calculator.push("≪ '(6!, 6+6)' num ≫"); calculator.push("@eval"); /* '(720,12)' */
+failing:
+calculator.push("≪ {key: true} eval ≫"); calculator.push("@eval"); /* keep object */ /// currently returns NaN as object is passed to ME.eval; should fall back to @eval
+
+
+List Processing:
+
+calculator.push('≪ {2 3 4 5} 1 ≪ NSUB + ≫ DOSUBS ≫'); calculator.push("@eval"); /* [ 3 5 7 9 ] */
+calculator.push('≪ [1, 2, 3, 4, 5] 1 ≪ NSUB ENDSUB ≫ DOSUBS ≫'); calculator.push("@eval"); /* [1,1,5,2,2,5,3,3,5,4,4,5,5,5,5] */
+calculator.push('≪ [1, 2, 3, 4, 5] 2 ≪ NSUB ENDSUB ≫ DOSUBS ≫'); calculator.push("@eval"); /* [1, 2, 1, 4, 2, 3, 2, 4, 3, 4, 3, 4, 4, 5, 4, 4] */
+calculator.push('≪ [1, 2, 3, 4, 5] 3 ≪ + NEG ≫ DOSUBS ≫'); calculator.push("@eval"); /* [ 1 -5 2 -7 3 -9 ] */
+calculator.push('≪ [1, 2, 3, 4, 5] 2 ≪ ≫ DOSUBS ≫'); calculator.push("@eval"); /* [1,2,2,3,3,4,4,5] */
+calculator.push('≪ 1 {1 2 3 4 5} 1 { + } DOSUBS ≫'); calculator.push("@eval"); /* 16 */
+calculator.push('≪ 1 {1 2 3 4 5} 1 [ + ] DOSUBS ≫'); calculator.push("@eval"); /* 16 */
+calculator.push('≪ [1, 2, 3, 4, 5] ≪ ≫ STREAM ≫'); calculator.push("@eval"); /* 1 2 3 4 5 */
+calculator.push('≪ [1, 2, 3, 4, 5] ≪ + ≫ STREAM ≫'); calculator.push("@eval"); /* 15 */
+calculator.push('≪ [1, 2, 3, 4, 5] { + } STREAM ≫'); calculator.push("@eval"); /* 15 */
+calculator.push('≪ [1, 2, 3, 4, 5] [ + ] STREAM ≫'); calculator.push("@eval"); /* 15 */
+calculator.push('≪ [1, 2, 3, 4, 5] " + " STREAM ≫'); calculator.push("@eval"); /* 15 */
+calculator.push('≪ [1, 2, 3, 4] [ sin ] MAP ≫'); calculator.push("@eval"); /* [ 0.841470984807897 0.909297426825682 0.141120008059867 -0.756802495307928 ] */
+calculator.push('≪ [1, 2, 3, 4] ≪ sin ≫ MAP ≫'); calculator.push("@eval"); /* [ 0.841470984807897 0.909297426825682 0.141120008059867 -0.756802495307928 ] */
+calculator.push('≪ [1, 2, 3, 4] " sin " MAP ≫'); calculator.push("@eval"); /* [ 0.841470984807897 0.909297426825682 0.141120008059867 -0.756802495307928 ] */
+calculator.push('≪ [1, 2, 3, 4] ≪ + ≫ MAP ≫'); calculator.push("@eval"); /* Error "too few args" */
+calculator.push('≪ [1, 2, 3] ≪ DUP 1 + ≫ MAP ≫'); calculator.push("@eval"); /* [[1 1][2 2][3 3]] */
+calculator.push('≪ {1 2 3 4 5} {8 5 2 3} {2 5 4 1} 2 ≪ + - ≫ DOLIST ≫'); calculator.push("@eval"); /* [-29 -28 -27 -26 -25] */
+calculator.push('≪ {1 2 3 4 5} {8 5 2 3} {2 5 4 1} 2 { + - } DOLIST ≫'); calculator.push("@eval"); /* [-29 -28 -27 -26 -25] */
+calculator.push(6); calculator.push('{ I + }'); calculator.push("'I'"); calculator.push(1); calculator.push(5); calculator.push(2); calculator.push("SEQ"); /* 15 */
+
+combine:
+calculator.push("≪ [1 2 3] 4 [+] combine ≫"); calculator.push("EVAL") /* [5 6 7] */
+ME.vector.combine([1,2,3],[4,5],["+"]) /* [5, 6, 6, 7, 7, 8] */
+ME.vector.combine([1,2,3],[4,5],["*"]) /* [4, 5, 8, 10, 12, 15] */
+ME.vector.combine([1,2,3],[4,5],["-"]) /* [-3, -4, -2, -3, -1, -2] */
+
+rotate_right, rotate_left:
+ME.vector.rotate_left([1,2,3]) /* [2, 3, 1] */
+ME.vector.rotate_right([1,2,3]) /* [3, 1, 2] */
+
+Number display:
+calculator.push("≪ 3.03 1e10 * ≫"); calculator.push("EVAL") /* 30300000000 */
+
+Tokenizer:
+(Comma, space separation:) calculator.functions.vector.fromString('[ SWAP,, DUP (2,3)   [2 3 4] ]')
+(Execution of program elements:) calculator.push('{ 3, 4, ≪ sin ≫, 6 }'); calculator.push('@eval')
+
+Fibbonacci:
+BigNum.modfib(BigNum.fromNumber("100"), BigNum.fromNumber("1234567891011")).toString() /* 495345832656 */
+
+FOR/START:
+calculator.push("≪ 1 100000 START NEXT ≫")
+calculator.push(1); calculator.push("≪ 1 10 START DUP + NEXT ≫") /* 1024 */
+calculator.push(1); calculator.push("≪ 1 10 FOR I I + NEXT ≫") /* 56 */
+calculator.push("≪ 1 2 FOR I ≪ I 2 * ≫ EVAL NEXT + ≫") /* 6 */
+calculator.push("≪ 1 2 FOR I 'I*2' EVAL NEXT + ≫") /* 6 */
+calculator.push("≪ → n ≪ 1 n START ?_rpl NEXT n fromElements ≫≫") /* n colors */
+calculator.push("≪ 3 2 FOR I I NEXT \"HI\" ≫"); calculator.push("EVAL") /* 3, "HI" */
+calculator.push("≪ 5 2 FOR I I -1 STEP \"HI\" ≫"); calculator.push("EVAL") /* 5, 4, 3, 2, "HI" */
+
+BREAK:
+calculator.push("≪ 0 1 10 FOR i i + IF i 5 == THEN BREAK END NEXT 10 + ≫"); calculator.push("EVAL") /* 25 */
+calculator.push("≪ 0 1 10 FOR i i + i 5 == IFTB NEXT 10 + ≫"); calculator.push("EVAL") /* 25 */
+calculator.push("≪ 0 1 10 FOR i i + BREAK START NEXT 10 + ≫"); calculator.push("EVAL") /* 11 */
+calculator.push("≪ 0 1 10 FOR i i + BREAK 1 5 START NEXT NEXT 10 + ≫"); calculator.push("EVAL") /* 11 */
+
+CONTINUE:
+calculator.push("≪ 0 1 10 FOR i IF i 5 == THEN CONTINUE END i + NEXT 10 + ≫"); calculator.push("EVAL") /* 60 */
+calculator.push("≪ 0 1 10 FOR i i 5 == IFTC i + NEXT 10 + ≫"); calculator.push("EVAL") /* 60 */
+calculator.push("≪ 0 1 10 FOR i CONTINUE i + BREAK NEXT 10 + ≫"); calculator.push("EVAL") /* 10 */
+calculator.push("≪ 0 1 10 FOR i CONTINUE i + BREAK 1 5 START NEXT NEXT 10 + ≫"); calculator.push("EVAL") /* 10 */
+
+
+Complex literal and program-local scope:
+calculator.push(6); calculator.push("≪ → X ≪ (5,6) X * ≫ X 2 * ≫") /* (30,36) 'X*2' */
+
+IFTE:
+FAIL calculator.push('≪ 2 3 true [-] [+] IFTE ≫'); calculator.push("EVAL")
+(@softnum is the wrong function; should just translate into prg and run instead)
+(or can IFTE not be used to run arbitrary code?)
+FAIL calculator.push('≪ [ 2 3 - ] softnum ≫'); calculator.push("EVAL")
+
+BOXO:
+calculator.push("2"); calculator.push("3"); calculator.push("4"); calculator.push("≪ → l b h '2*(b*h+l*h+l*b)' ≫") /* 52 */
+calculator.push("2"); calculator.push("3"); calculator.push("4"); calculator.push("≪ @dup2 * @rotate 4 @pick * + @rotate @rotate * + 2 * ≫")  /* 52 */
+calculator.push("2"); calculator.push("3"); calculator.push("4"); calculator.push("≪ → x y z 'BOXO(x,y,z)/(x*y*z)' ≫")
+
+FIB:
+FAIL calculator.push(6); calculator.push("≪ → n 'IFTE(n<=1,n,FIB1(n-1)+FIB1(n-2))' ≫")
+calculator.push(10); calculator.push("≪ → n ≪ IF n 1 <= THEN n ELSE 0 1 2 n START DUP ROT + NEXT SWAP DROP END ≫ ≫") /* 55 */
+
+DO:
+calculator.push("≪ → p ≪ DO DUP p EVAL UNTIL DUP ROT SAME END ≫ ≫") /* eval until no further reduction */
+
+WHILE:
+calculator.push("≪ → p ≪ 5 WHILE 1 - DUP REPEAT p SWAP END ≫ DROP ≫") /* 4 copies of input */
+calculator.push(23); calculator.push("≪ →STR WHILE DUP SIZE 23 < REPEAT \" \" SWAP + END ≫") /* PAD: input padded to 23 chars */
+calculator.push("≪ WHILE 0 REPEAT 1 END ≫") /* never true; returns nothing */
+calculator.push("≪ WHILE 0 REPEAT IF 1 THEN \"then\" END \"repeat\" END ≫") /* never true; returns nothing */
+calculator.push("≪ 2 WHILE 1 - DUP REPEAT IF 0 THEN \"then\" SWAP END \"one repeat\" SWAP END ≫") /* true once; returns "one repeat" 0 */
+
+DO and WHILE:
+calculator.push("≪ 0 =y DO WHILE y 1 < REPEAT ++y END UNTIL y 1 == END y ≫"); calculator.push("EVAL") /* */
+
+STAT:
+calculator.push("[[18, 12],[4, 7],[3, 2],[11, 1],[31, 48],[20, 17]]")
+calculator.push("≪ RCL∑ DUP TRN SWAP *  '∑COV'   STO   0 PREDV DROP ≫")
+calculator.push("≪ ∑COV ∑PAR DUP 5 ROLL GET  SWAP 4 ROLL GET 2 →ARRY GET ≫")
+calculator.push("≪ 2 2  ∑GET ≫")
+calculator.push("≪ 1  1  ∑GET ≫")
+calculator.push("≪ 1  2  ∑GET ≫")
+
+TYPE:
+calculator.push("3"); calculator.push("TYPE") /* 0 */
+calculator.push("(3,4)"); calculator.push("TYPE") /* 1 */
+calculator.push('"hi"'); calculator.push("TYPE") /* 2 */
+calculator.push("[3 4 5]"); calculator.push("TYPE") /* 3 */
+calculator.push("[(3,2) (4,7) (5,1)]"); calculator.push("TYPE") /* 4 */
+calculator.push("[(3,2) 3 2]"); calculator.push("TYPE") /* 5 */
+calculator.push("'e'"); calculator.push("TYPE") /* 6 */
+calculator.push("'x'"); calculator.push("TYPE") /* 7 */
+calculator.push("≪ 1  2 ≫"); calculator.push("TYPE") /* 8 */
+calculator.push("'e^i'"); calculator.push("TYPE") /* 9 */
+calculator.push("0x1234"); calculator.push("TYPE") /* 10 */
+calculator.push("1234o"); calculator.push("TYPE") /* 10 */
+calculator.push(":pok:123"); calculator.push("TYPE") /* 12 */
+calculator.push("39472639847263984762387643894"); calculator.push("TYPE") /* 28 */
+
+
+SORT:
+calculator.push("≪ DUP SIZE 1 - 1 FOR j 1 j FOR k k GETI  → n1 ≪  GETI →  n2 ≪ DROP  IF n1 n2 > THEN  k n2 PUTI n1 PUT END ≫ ≫ NEXT -1 STEP ≫")
+
+BIGNUM:
+calculator.onload()
+calculator.push("21"); calculator.push("≪ → nDigits ≪ 3 toBigNum → three ≪ 10 toBigNum nDigits pow → m ≪ three 1 nDigits START three @swap m modpow NEXT ≫≫≫≫") /* 104575627262464195387 */
+
+
+RPL+:
+calculator.push("≪ 2 =x 3 x * ≫"); calculator.push("EVAL") /* 6 */
+calculator.push("≪ 2 =:x 3 x * ≫"); calculator.push("EVAL") /* 2 6 */
+calculator.push("≪ 2 =: 3 x * ≫"); calculator.push("EVAL") /* Error */
+calculator.push("≪ 2 =x ++x x ≫"); calculator.push("EVAL") /* 3 */
+calculator.push("≪ 777 toBigNum =x --x x ≫"); calculator.push("EVAL") /* 776 */
+calculator.push("≪ 6 ++ ≫"); calculator.push("EVAL") /* 7 */
+calculator.push("≪ 6 -- ≫"); calculator.push("EVAL") /* 5 */
+calculator.push("≪ 666 toBigNum ++ ≫"); calculator.push("EVAL") /* 667 (big) */
+calculator.push("≪ 666 toBigNum -- ≫"); calculator.push("EVAL") /* 665 (big) */
+calculator.push("≪ 2 0 <= ≫"); calculator.push("EVAL") /* false */
+calculator.push("≪ 2 toBigNum 0 > ≫"); calculator.push("EVAL") /* true */
+calculator.push("≪ [1,4] =signs 0[] signs[1] ≫"); calculator.push("EVAL") /* 4 */
+calculator.push("≪ [1,4] =signs signs[1] ≫"); calculator.push("EVAL") /* 1 */
+calculator.push("≪ [3,4] =x x[1] ≫"); calculator.push("EVAL") /* 3 */
+calculator.push("≪ [3,4] =x x[1:0] ≫"); calculator.push("EVAL") /* 4 */
+calculator.push("≪ 4 =y [3,4] =x x[5-y] ≫"); calculator.push("EVAL") /* 3 */
+calculator.push("≪ 4 =y [3,4] =x x[5 - y] ≫"); calculator.push("EVAL") /* 3 */
+calculator.push("≪ [1,2,3,4] =signs 14 =k signs[MOD(k,4):0] ≫"); calculator.push("EVAL") /* 3 */
+calculator.push("≪ [1,2,3,4] =signs -1 =k signs[k:0] ≫"); calculator.push("EVAL") /* 4 */
+calculator.push("≪ 0[] [1,2,3,4] =signs 14 =k signs[k] ≫"); calculator.push("EVAL") /* 3 */
+calculator.push("≪ [1,4] =signs 1 =n signs[n:0] ≫"); calculator.push("EVAL") /* 4 */
+calculator.push("≪ [1,4] =signs 2 =n 7 =signs[n:0] signs ≫"); calculator.push("EVAL") /* [1,4,7] */
+calculator.push("≪ 0[] [7,4,9] =signs 3 =n 8 =signs[n] signs ≫"); calculator.push("EVAL") /* [7,4,9,8] */
+calculator.push("≪ [1,4] =signs 3 =n 7 =:signs[n] signs ≫"); calculator.push("EVAL") /* 7 [1,4,7] */
+calculator.push("≪ [1,4] =signs 3 =n 7 =signs[n - 1] signs ≫"); calculator.push("EVAL") /* [1,7] */
+calculator.push("≪ [1,4] =signs 3 =n 7 =signs[n + 1] signs ≫"); calculator.push("EVAL") /* Error: index out of range */
+calculator.push("≪ [] =signs 0 =signs[1] ≫"); calculator.push("EVAL") /* Error: index out of range */
+calculator.push("≪ 34 =signs[1] ≫"); calculator.push("EVAL") /* Error */
+calculator.push("≪ 34 =signs[] ≫"); calculator.push("EVAL") /* Error: incorrect syntax */
+
+calculator.push("≪ 2 toBigNum =a --a a ≫"); calculator.push("EVAL") /* 1 (big) */
+calculator.push("≪ 2 toBigNum =a a =*a a ≫"); calculator.push("EVAL") /* 4 (big) */
+calculator.push("≪ 2 toBigNum =a 3 toBigNum =+a a ≫"); calculator.push("EVAL") /* 5 (big) */
+calculator.push("≪ 2 toBigNum =a 3 =+a a ≫"); calculator.push("EVAL") /* 5 (big) */
+
+Other:
+
+calculator.push("≪ [[1 2][3 4]] → x ≪ 'x' VTYPE ≫ ≫"); calculator.push("EVAL") /* 3 */
+calculator.push("≪ [[1 2][3 4]] → x ≪ 'x2' VTYPE ≫ ≫"); calculator.push("EVAL") /* -1 */
+calculator.push("≪ [1 2 1 3 4 5 3 2 5] removeDuplicates ≫"); calculator.push("EVAL") /* [1 2 3 4 5] */
+calculator.push('≪ ["hi" "oops" "hi" 4 5 "wow" "hi"] removeDuplicates ≫'); calculator.push("EVAL") /* ["hi" "oops" 4 5 "wow"] */
+calculator.push('≪ [["" " " +] "oops" "hi" ["" " " +] ["" +] "wow" "hi"] removeDuplicates ≫'); calculator.push("EVAL") /* [ [ "" " " + ] "oops" "hi" [ "" + ] "wow" ] */
+
+------------
+
+Arrays ops:
+
+'[1,2,3]+[3,4,5] == [4,6,8]'
+'5+[1,2,3] == [5,1,2,3]'
+'5-[1,2,3] == [4,3,2]'
+'5*[1,2,3] == [5,10,15]'
+'[1,2,3]*[1,2,3] == [1,4,9]'
+
+[1 2 3], 4, ADD -> [5 6 7]
+
+[1,2,3]+5 == [1,2,3,5]
+[1,2,3]-5 == [4,3,2]
+[1,2,3]*5 == [5,10,15]
+
+------------
+store functions operating on name:
+
+calculator.push("≪ 6 → x ≪ 'x' 4 STO+ x ≫ ≫"); calculator.push("EVAL") /* 10 */
+calculator.push("≪ 6 → x ≪ 'x' 4 STO- x ≫ ≫"); calculator.push("EVAL") /* 2 */
+calculator.push("≪ 6 → x ≪ 'x' 4 STO* x ≫ ≫"); calculator.push("EVAL") /* 24 */
+calculator.push("≪ 6 → x ≪ 'x' 4 STO/ x ≫ ≫"); calculator.push("EVAL") /* 1.5 */
+calculator.push("≪ 6 → x ≪ 4 'x' STO/ x ≫ ≫"); calculator.push("EVAL") /* 0.66666 period */
+calculator.push("≪ 6 → x ≪ 'x' SNEG x ≫ ≫"); calculator.push("EVAL") /* -6 */
+calculator.push("≪ (6, 4) → x ≪ 'x' SNEG x ≫ ≫"); calculator.push("EVAL") /* (-6, -4) */
+calculator.push("≪ 6 → x ≪ 'x' SINV x ≫ ≫"); calculator.push("EVAL") /* 0.16666 period */
+calculator.push("≪ (6, 4) → x ≪ 'x' SINV x ≫ ≫"); calculator.push("EVAL") /* (0.115384615384615, -0.0769230769230769) */
+calculator.push("≪ (6, 4) → x ≪ 'x' SCONJ x ≫ ≫"); calculator.push("EVAL") /* (6, -4) */
+
+------------
+automatic operate on name:
+calculator.push("≪ [1 6 3] → x ≪ 'x' 2 GET ≫ ≫"); calculator.push("EVAL") /* 6 */
+calculator.push("≪ [1 6 3] → x ≪ 'x2' 2 GET ≫ ≫"); calculator.push("EVAL") /* Error: undefined name: x2 */
+calculator.push("≪ [1 6 3] → x ≪ 'x' 2 8 PUT x ≫ ≫"); calculator.push("EVAL") /* [1 8 3] */
+calculator.push("≪ [[6 3][5 2]] → x ≪ 'x' TRN x ≫ ≫"); calculator.push("EVAL") /* [[6 5][3 2]] */
+calculator.push("≪ [[6 3][5 2]] → x ≪ 'x' 5 CON x ≫ ≫"); calculator.push("EVAL") /* [[5 5][5 5]] */
+calculator.push("≪ [1 2 3] → x ≪ 'x' 5 CON x ≫ ≫"); calculator.push("EVAL") /* [5 5 5] */
+fail: calculator.push("≪ [1 2] → x ≪ 'x' 5 CON x ≫ ≫"); calculator.push("EVAL") /* [5 5] */
+calculator.push("≪ [[1 2][3 4]] → x ≪ 'x' IDN x ≫ ≫"); calculator.push("EVAL") /* [[1 0][0 1]] */
+calculator.push("≪ 4 → x ≪ 'x' INCR ≫ ≫"); calculator.push("EVAL") /* 5 */
+calculator.push("≪ 4 → x ≪ 'x' DECR ≫ ≫"); calculator.push("EVAL") /* 3 */
+calculator.push("≪ 4 toBigNum → x ≪ 'x' INCR ≫ ≫"); calculator.push("EVAL") /* 5 (big) */
+calculator.push("≪ 4 toBigNum → x ≪ 'x' DECR ≫ ≫"); calculator.push("EVAL") /* 3 (big) */
+
+pow:
+calculator.push("≪ [[0 1][1 1]] 19 ^ ≫"); calculator.push("EVAL") /* [[2584 4181][4181 6765]] */
+calculator.push("≪ [[5 6][7 8]] 0 ^ ≫"); calculator.push("EVAL") /* [[1 0][0 1]] */
+
+peval:
+ME.vector.peval([3, 2, 1], "'x'") /* "'3*x^2+2*x+1'" */
+ME.vector.peval([1, 2, 3, 4], "'X'") /* "'X^3+2*X^2+3*X+4'" */
+ME.vector.peval(["'2+4'", 0, 1, 4], "(0.5,3)") /* (-75.7499999999999,-145.50000000000003) */
+ME.vector.peval([-5, "'r+5'", 0, 2, 4], "'h'") /* '-5*h^4+(r+5)*h^3+2*h+4' */
+ME.vector.peval([-2, -1], "'h'") /* '-2*h-1' */
+ME.vector.peval(["'2+r'", 0, 1, 4], "0.5") /* Error: no such variable: r */
+
+flip:
+calculator.push("≪ [[1,2,3],[4,5,6],[7,8,9]] flip ≫"); calculator.push("EVAL") /* [[3,2,1],[6,5,4],[9,8,7]] */
+calculator.push("≪ [[1,2,3],[4,5,6]] flip ≫"); calculator.push("EVAL") /* [[3,2,1],[6,5,4]] */
+
+slice:
+calculator.push("≪ [1 2 3] 2 [4 5] slice ≫"); calculator.push("EVAL") /* [1 4 5] */
+
+mod:
+calculator.push("≪ [-4 -2 -1 1 2 4] 3 mod ≫"); calculator.push("EVAL") /* [2 1 2 1 2 1] */
+
+rem:
+calculator.push("≪ [-4 -2 -1 1 2 4] 3 rem ≫"); calculator.push("EVAL") /* [-1 -2 -1 1 2 1] */
+
+
+integration:
+calculator.push("≪ 0 6.4 'FP(x)' 'x' @integrate ≫"); calculator.push("EVAL") /* 3.08xxx */
+calculator.functions["@integrate"](0, 6.4, "'FP(x)'", "'x'")
+
+and:
+calculator.push(4); calculator.push("true"); calculator.push("AND") /* true */
+calculator.push(4); calculator.push("false"); calculator.push("AND") /* false */
+calculator.push(0); calculator.push("false"); calculator.push("AND") /* false */
+calculator.push(0); calculator.push("true"); calculator.push("AND") /* false */
+
+or:
+calculator.push(4); calculator.push("false"); calculator.push("OR") /* true */
+calculator.push(4); calculator.push("true"); calculator.push("OR") /* true */
+calculator.push(0); calculator.push("true"); calculator.push("OR") /* true */
+calculator.push(0); calculator.push("false"); calculator.push("OR") /* false */
+
+not:
+calculator.push(1); calculator.push("not") /* false */
+calculator.push(0); calculator.push("not") /* true */
+calculator.push("true"); calculator.push("not") /* false */
+calculator.push("false"); calculator.push("not") /* true */
+
+factorial:
+calculator.push("10!"); /* 3628800 */
+calculator.push("10.5!"); /* 11899423.083962262 */
+
+mod:
+calculator.push([13,-13,4.5,-4.5]); calculator.push(3); calculator.push("mod") /* [1, 2, 1.5, 1.5] */
+calculator.push([13,-13,4.5,-4.5]); calculator.push(-3); calculator.push("mod") /* [-2, -1, -1.5, -1.5] */
+calculator.push([13,-13,4.5,-4.5]); calculator.push("toBig"); calculator.push(3); calculator.push("mod") /* [1, 2, 1.5, 1.5] */
+calculator.push([13,-13,4.5,-4.5]); calculator.push("toBig"); calculator.push(-3); calculator.push("mod") /* [-2, -1, -1.5, -1.5] */
+
+rem:
+calculator.push([13,-13,4.5,-4.5]); calculator.push(3); calculator.push("rem") /* [1, -1, 1.5, -1.5] */
+calculator.push([13,-13,4.5,-4.5]); calculator.push(-3); calculator.push("rem") /* [1, -1, 1.5, -1.5] */
+calculator.push([13,-13,4.5,-4.5]); calculator.push("toBig"); calculator.push(3); calculator.push("rem") /* [1, -1, 1.5, -1.5] */
+calculator.push([13,-13,4.5,-4.5]); calculator.push("toBig"); calculator.push(-3); calculator.push("rem") /* [1, -1, 1.5, -1.5] */
+
+quot:
+calculator.push("≪ 13 5 quot ≫"); calculator.push("@eval"); /* 2 */
+calculator.push("≪ 13 toBig 5 quot ≫"); calculator.push("@eval"); /* 2 (big) */
+calculator.push("≪ 13 R→I 5 IQUOT ≫"); calculator.push("@eval"); /* 2 (big) */
+calculator.push("≪ 13 toBigF 5 quot ≫"); calculator.push("@eval"); /* 2 (bigF) */
+
+ceil:
+calculator.push([13,-13,4.5,-4.5]); calculator.push("ceil") /* [13 -13 5 -4] */
+calculator.push([13,-13,4.5,-4.5]); calculator.push("toBigF"); calculator.push("ceil") /* [13 -13 5 -4] */
+
+floor:
+calculator.push([13,-13,4.5,-4.5]); calculator.push("floor") /* [13 -13 4 -5] */
+calculator.push([13,-13,4.5,-4.5]); calculator.push("toBigF"); calculator.push("floor") /* [13 -13 4 -5] */
+
+fract:
+calculator.push([13,-13,4.5,-4.5]); calculator.push("fract") /* [0 0 0.5 -0.5] */
+calculator.push([13,-13,4.5,-4.5]); calculator.push("toBigF"); calculator.push("fract") /* [0 0 0.5 -0.5] */
+
+sign:
+calculator.push([13,-13, 0, -0, +0, 4.5,-4.5]); calculator.push("sign") /* [1 -1 0 0 0 1 -1] */
+calculator.push([13,-13, 0, -0, +0, 4.5,-4.5]); calculator.push("toBigF"); calculator.push("sign") /* [1 -1 0 0 0 1 -1] */
+calculator.push([13,-13, 0]); calculator.push("toBigNum"); calculator.push("sign") /* [1 -1 0] */
+
+omega, Omega:
+push("≪ 1..10 omega ≫"); push("eval"); /* [ 0 1 1 1 1 2 1 1 1 2 ] */
+push("≪ 1..10 Omega ≫"); push("eval"); /* [ 0 1 1 2 1 2 1 3 2 2 ] */
+
+
+rtotal (v, offset, skip, exponent):
+ME.vector.rtotal([1,2,3,4], 0, 0, 0) == 4
+ME.vector.rtotal([1,2,3,4], 0, 0, 1) == 10
+ME.vector.rtotal([1,2,3,4], 0, 2, 2) == 17
+ME.vector.rtotal([1,2,3,4], 0, 2, 2) == 17
+ME.vector.rtotal([1,2,3,4], 1, 2, 2) == 4
+ME.vector.rtotal([1,2,3,4], 1, 1, 2) == 20
+
+rproduct (v, offset, skip, add):
+ME.vector.rproduct([1,2,3,4], 0, 0, 0) == 24
+ME.vector.rproduct([1,2,3,4], 1, 0, 0) == 24
+ME.vector.rproduct([1,2,3,4], 0, 0, 1) == 120
+ME.vector.rproduct([1,2,3,4], 1, 0, 1) == 60
+ME.vector.rproduct([1,2,3,4], 1, 1, 1) == 15
+
+cproduct:
+calculator.push("≪ [1 2 3] [1 2 3] cproduct ≫"); calculator.push("EVAL") /* [1 2 3 2 4 6 3 6 9] */
+
+isSquareFree:
+calculator.push("≪ 17..20 isSquareFree ≫"); calculator.push("eval") /* [ true false true false ] */
+
+squareFree:
+calculator.push("≪ 1..20 squareFree ≫"); calculator.push("eval") /* [ 1 2 3 5 6 7 10 11 13 14 15 17 19 ] */
+
+squareFreePart:
+calculator.push("≪ 1..20 squareFreePart ≫"); calculator.push("eval") /* [ 1 2 3 1 5 6 7 2 1 10 11 3 13 14 15 1 17 2 19 5 ] */
+
+moebius:
+calculator.push("≪ 1..25 moebius ≫"); calculator.push("eval") /* [ 1 -1 -1 0 -1 1 -1 0 0 1 -1 0 -1 1 1 0 -1 0 -1 0 1 1 -1 0 0 ] */
+
+map:
+calculator.push([[16,9],[0, 4],[-4, -9]]); calculator.push("[sqrt]"); calculator.push("map") /* [[4 3][0 2][(0,2) (0,3)]] */
+fail: calculator.push("≪ showImproper 2 toSqrtCF 20 convergents [toComponents] map ≫"); calculator.push("EVAL") /* todo: errors; shouldn't */
+
+squareFree:
+calculator.push("[1 20 range]"); calculator.push("EVAL"); calculator.push("squareFree") /* [ 2 3 5 6 7 8 10 11 12 13 14 15 17 18 19 20 ] */
+calculator.push("[1 20 range toBig]"); calculator.push("EVAL"); calculator.push("squareFree") /* [ 2 3 5 6 7 8 10 11 12 13 14 15 17 18 19 20 ] */
+
+repeat:
+fail: calculator.push("≪ 1..3 2 repeat ≫"); calculator.push("eval") /* [ 1 2 3 1 2 3 ] */
+
+match:
+ME.string.match('"Hallo"', '".al"') /* "Hal" */
+ME.string.match('"Hallo"', '".a(.+)"') /* ["Hallo", "llo"] */
+ME.string.match('"Hallo"', '"^a."'); vars.hasResult /* false */
+calculator.push('≪ "Hallo" "^a." match hasResult ≫'); calculator.push("@eval"); /* false */
+calculator.push('≪ 1..40 ".3" match ≫'); calculator.push("EVAL") /* [13 23 33] */
+calculator.push('≪ 1..40 "(.)3" match ≫'); calculator.push("EVAL") /* [[13 1] [23 2] [33 3]] */
+calculator.push('≪ 1..40 [@toString] map ".3" match ≫'); calculator.push("EVAL") /* ["13" "23" "33"] */
+calculator.push('≪ 1..40 [@toString] map "(.)3" match ≫'); calculator.push("EVAL") /* [["13" "1"]["23" "2"]["33" "3"]] */
+calculator.push('≪ 1e6 primes [real 1e5 >] filter ".2.2.3" match ≫'); calculator.push("EVAL") /* [120223 120233 ...] */
+
+
+HMS:
+ME.HMSminus(2.3,1.25) == 1.05
+&& ME.HMSplus(30,30) == 60
+&& ME.toHMS(3605/3600) == 1.0005
+&& ME.toHMS(1.2) == 1.12
+&& ME.fromHMS(2.3) == 2.5
+&& ME.fromHMS(2.3*100) == 230
+&& ME.fromHMS(1.03) == 1.05
+&& ME.toHMS(.001) == 0.00036
+&& ME.fromHMS(0) == 0
+&& ME.toHMS(0) == 0
+
+
+NEXTPRIME:
+calculator.push("≪ 2 1 10000 START NEXTPRIME NEXT ≫"); calculator.push("EVAL") /* 104743 */
+calculator.push("≪ 1e14 1 10000 START NEXTPRIME NEXT ≫"); calculator.push("EVAL") /* 100000000326319 ; 36s*/
+
+ProgramFragment:
+calculator.ProgramFragment.fromObj('"sin"').eval(0) /* 0 */
+calculator.ProgramFragment.fromObj('sin').func(0) /* 0 */
+calculator.ProgramFragment.fromObj('"total"').eval([1,2,3]) /* 6 */
+calculator.ProgramFragment.fromObj('"neg"').eval('(4,5)') /* (-4, -5) */
+calculator.ProgramFragment.fromObj(["real", "6", ">"]).func(10) /* true */
+calculator.ProgramFragment.fromObj(["sin"]).eval(0) /* 0 */
+calculator.ProgramFragment.fromObj(["sin:r"]).eval(0) /* 0 */
+calculator.ProgramFragment.fromObj("≪ sin ≫").eval(0) /* 0 */
+calculator.ProgramFragment.fromObj([ "√", "FP", 0, "==" ]).eval(10) /* false */
+calculator.ProgramFragment.fromObj([ "real", "√", "FP", 0, "==" ]).func(9) /* true */
+calculator.ProgramFragment.fromObj([ ]).func /* function (_x) { return _x; } */
+calculator.ProgramFragment.fromObj("≪ x=5+3 [1..20] any[] ≫") /* [1..20] */
+calculator.ProgramFragment.fromObj([ "real", "split", "vector.total" ]).func(145) == 10
+
+Natural Math Syntax:
+ME.expr.functionForNaturalMath("'f(x, y) = √(x^2+y^2)'")(4,3) /* 5 */
+ME.expr.functionForNaturalMath("'f(x) = x^2'")(4) /* 16 */
+
+doUntil:
+calculator.push("1..5"); calculator.push("{ iter + }"); calculator.push("{ 10 > }"); calculator.push("doUntil") /* [ 11 12 13 14 11 ] [ 4 4 4 4 3 ] */
+calculator.push("≪ 1..5 [iter +] [10 >] doUntil ≫"); calculator.push("EVAL") /* todo: doesn't work as iter enter as 'iter' (allow both functionnames and variable names to enter; problem: var not defined when its array enters */
+calculator.push("[1 2 3 4 5 9 10]"); calculator.push("{ phi }"); calculator.push("{ 1 == }"); calculator.push("doUntil") /* [ 1 1 1 1 1 1 1 ] [ 1 1 2 2 3 3 3 ] */
+calculator.push("[1 2 3 4 5 9 10]"); calculator.push('"phi:r"'); calculator.push("{ 1 == }"); calculator.push("doUntil") /* [ 1 1 1 1 1 1 1 ] [ 1 1 2 2 3 3 3 ] */
+calculator.push("[1e2 1e3 range]"); calculator.push("EVAL"); calculator.push('"phi:r"'); calculator.push("{ real isPowerOf2 }"); calculator.push("doUntil") /* [ 16 16 32 32 16...] [ 2 3 1 2 2 2 3...] */
+calculator.push("[[1015 259 493 637 871], [4,3,2,1]]"); calculator.push("{ rotate_left }"); calculator.push("{ DUP 1 at SWAP vmin == }"); calculator.push("doUntil") /* [ [ 259 493 637 871 1015 ] [ 1 4 3 2 ] ] [ 1 3 ] */
+(empty condition)
+calculator.push("[1 2 3 4 5 9 10]"); calculator.push("{ phi }"); calculator.push("{ }"); calculator.push("doUntil") /* [ 1 1 2 2 4 6 4 ] [ 1 1 1 1 1 1 1 ] */
+(isFalse condition)
+calculator.push("[1 2 3 4 5 9 10]"); calculator.push("{ phi }"); calculator.push("{ isFalse }"); calculator.push("doUntil") /* [ 1 1 1 1 1 1 1 ] [ 1000 1000 1000 1000 1000 1000 1000 ] */
+(recurse)
+calculator.push("[12496]"); calculator.push("{DUP 1 sigma SWAP -}"); calculator.push("{ recurse }"); calculator.push("doUntil") /* [12496] [5] */
+(hash)
+calculator.push("105..108"); calculator.push("{hash split ! total}"); calculator.push("{ recurse }"); calculator.push("doUntil") /* [ 169 169 363601 169 ] [ 12 6 8 33 ] */
+calculator.push("[128, 32, 256, 128]"); calculator.push("{ hash phi }"); calculator.push("{ real 1 == }"); calculator.push("doUntil") /* [ 1 1 1 1 ] [ 7 5 8 7 ] */
+
+find:
+calculator.push("[1 3 5 7 9 11 13]"); calculator.push("{ √ isInt }"); calculator.push("find"); calculator.push("hasResult") /* 3, true */
+calculator.push("[1 2 3 4 5 9 10]"); calculator.push("{ phi 2 == }"); calculator.push("find"); calculator.push("hasResult") /* 3, true */
+calculator.push("[1 2 3 4 5 9 10]"); calculator.push("{ phi 3 == }"); calculator.push("find"); calculator.push("hasResult") /* false */
+push("≪ 1..100 Omega 6 find N ≫"); push("eval") /* 64 */
+
+count:
+push("≪ 1..10 omega 1 count ≫"); push("eval") /* 7 */
+
+filter:
+calculator.push("[1 2 3 4 5 9 10]"); calculator.push("{ √ FP 0 == }"); calculator.push("filter") /* [1 4 9] */
+calculator.push("[1 2 3 4 5 9 10]"); calculator.push("[ √ isInt ]"); calculator.push("filter") /* [1 4 9] */
+calculator.push("[1 2 3 4 5 8]"); calculator.push("{ isPowerOf2 }"); calculator.push("filter") /* [1 2 4 8] */
+calculator.push("1234567890"); calculator.push("permutate"); calculator.push("{ real √ FP 0 == }"); calculator.push("filter") /* [1237069584 ...(108 more)] */
+push("≪ 1..10 omega 1 filter total ≫"); push("eval") /* 7 */
+
+select:
+calculator.push("[1 2 3 4 5 9 10]"); calculator.push([true, false, true, true, false, false, true]); calculator.push('"isFalse:r"'); calculator.push("select") /* [2 5 9] */
+calculator.push("[1 2 3 4 5 9 10]"); calculator.push([true, false, true, true, false, false, true]); calculator.push("{ }"); calculator.push("select") /* [1 3 4 10] */
+calculator.push("[1 2 3 4 5 9 10]"); calculator.push("[1 0 1 1 0 0 1]"); calculator.push("{ }"); calculator.push("select") /* [1 3 4 10] */
+calculator.push("[1 2 3 4 5 9 10]"); calculator.push("[1 2 1 1 2 2 1]"); calculator.push("{ 2 == }"); calculator.push("select") /* [2 5 9] */
+
+intersection:
+calculator.push("[1 2 3 4 5 9]"); calculator.push("[2 3 4 6 8]"); calculator.push("intersect") /* [2 3 4] */
+
+complement:
+calculator.push("[1 2 3 4 5 9]"); calculator.push("[2 3 4 6 8]"); calculator.push("complement") /* [1 5 9] */
+calculator.push("≪ 1..20 dup squareFree complement ≫"); calculator.push("EVAL")  /* [ 4 8 9 12 16 18 20 ] */
+
+compare:
+calculator.push("[22 33 55 77 88]"); calculator.push("[22 33 44 66 88]"); calculator.push("compare") /* [3 4] */
+calculator.push("≪ 1..20 =:r squareFree r compare ≫"); calculator.push("EVAL")  /* [ 4 8 9 12 16 18 20 ] */
+
+vmin:
+calculator.push("[5 3 2 7 2]"); calculator.push("vmin") /* 2 */
+
+vmax:
+calculator.push("[5 3 2 7 2]"); calculator.push("vmax") /* 7 */
+
+convergent:
+calculator.push("≪ showImproper 2 toSqrtCF 25 convergent ≫"); calculator.push("EVAL") /* 4478554083/3166815962 */
+calculator.push("≪ showImproper π toCF 3 convergent ≫"); calculator.push("EVAL") /* 355/113 */
+
+convergents:
+calculator.push("≪ showImproper 2 toSqrtCF 5 convergents ≫"); calculator.push("EVAL") /* [ 3/2 7/5 17/12 41/29 99/70 ] */
+calculator.push("≪ showImproper π toCF 3 convergents ≫"); calculator.push("EVAL") /* [ 3/1, 22/7, 355/113 ] */
+fail: calculator.push("≪ showMixed 6.2355 toCF 2 convergents ≫"); calculator.push("EVAL") /* [  ] */
+
+Symbolic calculation:
+calculator.push("'x'"); calculator.push("≪ √ FP 0 == ≫"); calculator.push("EVAL") /* '(FP(√(x)))==0' */
+
+Algebraic expression/variables in vector/matrix:
+calculator.push("≪ 5 =x [x 3] ≫"); calculator.push("EVAL") /* [5 3] */
+calculator.push("≪ 5 =x [[x 3][2 x+2]] ≫"); calculator.push("EVAL") /* [[5 3][2 7]] */
+
+Symblic calculation, internally:
+f = calculator.functionForExpression(calculator.expressionForRPN("√ FP 0 =="))
+f(9) /* true */
+f(10) /* false */
+
+Immediate algebraic expressions in RPL:
+calculator.RPLProgram.compile(calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ 4!-5 sin(6+9) sin(8) 4+3 4/3 ]"))
+calculator.RPLProgram.compile(calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ 4!-u sin(x+y) sin(a) 4+y a/3 ]"))
+calculator.RPLProgram.compile(calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ total(s) 8+3 i+9 total([1,2,3]) toBig(10)^100 ]"))
+failing:
+calculator.RPLProgram.compile(calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ 4==6 4==j size(pok) pow(10,100) ]"))
+errors:
+calculator.evaluableExpressionForExpression("4==6")
+
+compile:
+calculator.RPLProgram.compile(calculator.RPLProgram.tokenizeWithDelimiters("≪", "≫", "≪ #102_data ≪ V→ →V2 =a →V2 =b →V2 =c a b cross last sign =s b c cross last sign s == c a cross last sign s == and ≫ MAP total ≫");
+
+questionable: ["()" should not be required]
+calculator.RPLProgram.compile(calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ ([5,3]) ([5,y]) ]"))
+
+none of these work:
+calculator.RPLProgram.compile(calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ a=4 a[5]=3 ((x=phi(x))>2&&count<len) sum+=5 ]"))
+because
++ a=4 works but returns a
++ a[5]=3 is type "unknown" (though isALikelyExpression() returns true)
++ latter two or not valid expr for expr parser
+calculator.RPLProgram.compile(calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ [2,2]+[2,2] ]"))
+because
++ first [2,2] seen as literal 
++ first seen as read_array
+==> validate literal arrays for unknowns
+calculator.RPLProgram.compile(calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ (y=3*x*x+3*x+1)>=top ]"))
+because
++ token breaks after ()
+calculator.RPLProgram.compile(calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ end-start*2 ]"))
+because
+
+calculator.RPLProgram.compile(calculator.RPLProgram.tokenizeWithDelimiters("[", "]", "[ (2^3)^4 ]"))
+because
++ closing parenthesis seen as end of expression
+
+-------------
+
+FAILING:
+- (because boolean vector doesn't enter as such): calculator.push("[1 2 3 4 5 9 10]"); calculator.push("[true false true true false false true]"); calculator.push("{ false == }"); calculator.push("select") /* [2 5 9] */
+
+- calculator.push("≪ [2,2]+[2,2] ≫"); calculator.push("EVAL") /* 6 */
+
+------------
+
+Testing Objects:
+
+auto-conversion into vector and back
+calculator.calc(0.2, calculator.vars.white, "*")
+calculator.calc(calculator.vars.white, "sin")
+
+Testing calc:
+calculator.calc.apply(calculator, ["10", "2", "pow"]) /* 100 */
+
+
+Testing Units:
+
+calculator.vars.Units = {}
+calculator.vars.Units["Weight [g]"] = {"Ton [t]": 2222.0 }
+calculator.vars.Units["Length [m]"] = {"Inch [in]":0.0254, "Foot [ft]": 0.3048, "Yard [yd]": 0.9144, "Light Year [lyr]": 9.46052840488e15 }
+calculator.convert(1,'m','ft')
+calculator.convert(1,'in','cm')
+calculator.convert(260e6,'km','lyr')
+
+calculator.unitObjectFor('in')
+calculator.nameAndUnit("Length [m]")
+
+calculator.vars.Units["Energy [kg*m^2/s^2]"] =  { "Electron Volt [eV]": 1.60219e-19, "Erg [erg]": 0.0000001, "Joule [J]": 1, "Calorie [cal]": 4.1868, "IST [Btu]": 1055.05585262, "EEC [therm]": 105506000 }
+calculator.convert(3000, 'eV', 'J')
+
+
+Testing Graphics:
+
+calculator.push("[[0,0],[1,1],[2,5]]")
+calculator.push("STO∑")
+
+calculator.push("line∑")
+OR
+calculator.push("SCL∑")
+calculator.push("DRAW∑")
+
+OR
+calculator.functions.vector["linePlot"]([1,4,8,4,5,2])
+
+calculator.push("@fromDisplay")
+
+calculator.push("stopAnyGraphics")
+
+calculator.push("toDisplay")
+
+OR (graphing)
+calculator.push("'x^3'")
+calculator.push("STEQ")
+calculator.push("draw")
+
+--------------------------
+
+Functions:
+
+'mod(-123,5) == 2'
+'mod(123,5) == 3'
+'mod(-123,-5) == -2'
+
+replace (SREPL):
+calculator.push('"THIS IS A IS 2"'); calculator.push('"IS"'); calculator.push('"ARE"'); calculator.push("replace")

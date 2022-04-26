@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ND1</title>
+
+<style type="text/css">
+	* {
+		font-family: "Lucida Grande", Lucida, sans-serif;
+	}
+	body {
+		font-size: 18px;
+		background-color: transparent;
+	}
+	.center {
+		margin-left:auto;
+		margin-right:auto;
+	}
+	stackPos {
+		text-alignment: right;
+	}
+	.softkey {
+		font-size: 15px;
+		width: 56px;
+		padding-left: 0px;
+		padding-right: 0px;
+	}
+	.fsoftkey {
+		font-size: 15px;
+		width: 56px;
+		padding-left: 0px;
+		padding-right: 0px;
+	}
+	.key {
+		font-size: 15px;
+		width: 50px;
+		padding-left: 0px;
+		padding-right: 0px;
+	}
+	.editlinekey {
+		font-size: 18px;
+		width: 38px;
+		padding: 0px;
+	}
+	.sm {
+		font-size: 10px;
+		position: absolute;
+		margin-right: 5px;
+	}
+	.enterkey {
+		font-size: 18px;
+		width: 152px;
+	}
+	#categoryName {
+		right: 50px;
+		top: 20px;
+		font-size: 15px;
+		position: fixed;
+	}
+	#calcbody {
+		height: 530px;
+		width: 100%;
+		position: relative;
+		overflow: auto;
+	}
+</style>
+
+<script language="JavaScript" type="text/javascript" src="json.js"></script>
+<script language="JavaScript" type="text/javascript" src="sylvester.js"></script>
+<script language="JavaScript" type="text/javascript" src="parser.js"></script>
+<!--<script language="JavaScript" type="text/javascript" src="MochiKit.js"></script>-->
+<!--<script language="JavaScript" type="text/javascript" src="canvastext.js"></script>-->
+
+<!--<script language="JavaScript" type="text/javascript" src="PlotKit/PlotKit.js"></script>-->
+<!--<script language="JavaScript" type="text/javascript" src="CanvasGraph.js"></script>-->
+
+<script language="JavaScript" type="text/javascript" src="calc.js"></script>
+<!--<script type="application/javascript;version=1.7" src=calc.js></script>-->
+
+<script language="JavaScript" type="text/javascript">
+
+window.onUIchange = function(obj) {
+//	alert(obj);
+}
+
+function onload() {
+	calculator.exec = function(cmd, msg, msg2, msg3) { // host communication override
+		if (cmd == "alert" || cmd == "alertWithDelay") alert(cmd + ": " + msg + ": " + msg2 + ": " + msg3);
+	};
+	calculator.functions["@load"] = function(categoryName) {
+		categoryName = calculator.unquote(categoryName);
+		var wantsPersonalCopy = true;///false;
+		var url = "../uploads/" + (wantsPersonalCopy ? "E4E62D2B-02B8-469C-8A9F-53497CC3EBCB_" : "") + "UserData_" + categoryName + ".txt";
+		///alert(url);
+		var s = requestURL(url);
+		//alert(s);
+		calculator.functions[categoryName] = {};
+		calculator.vars[categoryName] = {};
+
+		var entries = JSON.parse(s).data;
+		for (var i=0; i<entries.length; i++) {
+			var datum = entries[i];
+			var data = datum.data;
+			if (data.indexOf("function") == 0) {
+				var completedFDefinition = data;
+				if (data.indexOf("/*as is*/") == -1) {
+					var pos = data.indexOf("{");
+					if (pos != -1) {
+						++pos;
+						var part1 = data.slice(0, pos);
+						var part2 = data.slice(pos);
+						completedFDefinition = part1 + " with (calculator.vars['" + categoryName + "']) with (calculator.functions) with (calculator.functions['" + categoryName + "']) { " + part2 + " }";
+					}
+				}
+				// alert(categoryName + "(" + i + ") = " + completedFDefinition);
+				eval('calculator.functions[categoryName][datum.name] = ' + completedFDefinition);
+			}
+			else {
+				calculator.vars[categoryName][datum.name] = data;
+				if (data[0] == '\u226a')
+					calculator.buildFunctionWrapperForHPProgram(datum.name, categoryName);
+			}
+		}
+		
+		calculator.setCurrentDataCategory(categoryName);
+		calculator.populateSoftkeys(categoryName);
+	};
+	calculator.populateSoftkeys = function(categoryName) {
+		var softkeys = ui.getElementsByClassName("softkey");
+		var obj = calculator.functions[categoryName];
+		var counter = 0;
+		for (var i in obj) {
+			softkeys[counter].innerHTML = '<sub class="sm">' + softkeys[counter].name + '</sub>' + i;
+			///softkeys[counter].value = i;
+			if (++counter >= softkeys.length)
+				break;
+		}
+		if (counter < softkeys.length)
+			for (; counter<softkeys.length; counter++)
+				softkeys[counter].innerHTML = "";
+				///softkeys[counter].value = "";
+	};
+
+	display.updateCategoryShown = function() {
+		categoryName.innerHTML = calculator.currentDataCategory;
+	};
+
+	calculator.onload();
+}
+
+function push(s) {
+	function completeString(s) {
+		var last = s.length-1;
+		if (s[0] == '[') {
+			if (s[1] == '[') { // a matrix
+				if (s[last] != ']' && s[last-1] != ']')
+					s = calculator.completeMatrixString(s);
+			}
+			else { // a vector
+				if (s[last] != ']')
+					s += ']';
+			}
+		}
+		else if (s[0] == '(') { // a complex number
+			if (s[last] != ')')
+				s += ')';
+		}
+		else if (s[0] == "'" || s[0] == '"') { // a name/expression OR firm string
+			if (s[last] != s[0])
+				s += s[0];
+		}
+		return s;
+	}
+	if (s.length) {
+		s = completeString(s);
+		calculator.push(calculator.lastPushedEditLine = s);
+		calcbody.scrollTop = 100000; // in lieu of		display.scrollToBottom();
+	}
+}
+
+function enter() {
+	var s = ui.editline.value;
+	if (!s.length)
+		s = calculator.getFirstStackItem();
+	push(s);
+	ui.editline.value = '';
+	ui.editline.focus();
+}
+
+function issue(cmd) {
+	var s = ui.editline.value;
+	if (s.length)
+		push(s);
+	
+	calculator.push(cmd);
+
+	ui.editline.value = '';
+	ui.editline.focus();
+}
+
+function keydown(e) {
+/**/ event = e;
+	if (document.activeElement != ui.editline) {
+		if (e.ctrlKey && e.keyCode > 32) {
+			var numtext;
+			switch (String.fromCharCode(e.keyCode)) {
+				case "B": numtext = "1"; break;
+				case "N": numtext = "2"; break;
+				case "M": numtext = "3"; break;
+				case "G": numtext = "4"; break;
+				case "H": numtext = "5"; break;
+				case "J": numtext = "6"; break;
+				case "T": numtext = "7"; break;
+				case "Y": numtext = "8"; break;
+				case "U": numtext = "9"; break;
+				case ".": numtext = "."; break;
+				case "K": numtext = "0"; break;
+				case "I": numtext = "("; break;
+				case "O": numtext = ")"; break;
+				case "L": numtext = ","; break;
+				case "P": numtext = "+"; break;
+				case "R": numtext = "-"; break;
+				case "F": numtext = "/"; break;
+				case "V": numtext = "*"; break;
+				case "Q": numtext = "sin("; break;
+				case "W": numtext = "cos("; break;
+				case "E": numtext = "e"; break;
+				case "A": numtext = "sqrt("; break;
+				case "S": numtext = "^2"; break;
+				case "Z": numtext = "^"; break;
+				case "D": numtext = "["; break;
+				case "C": numtext = "]"; break;
+			}
+			if (numtext) {
+				ui.editline.value += numtext;
+				e.preventDefault();
+				return;
+			}
+		}
+		
+		var keys = ui.getElementsByTagName("input");
+		var keyname = (e.keyCode == 16 ? "edit" : (e.keyCode == 8 ? (e.altKey ? "clear" : "undo") : (e.keyCode == 190 ? (e.altKey ? "args" : "last") : (e.keyCode == 32 ? "stop" : (e.keyCode == 13 ? "calc" : String.fromCharCode(e.keyCode))))));
+		for (var i=0; i<keys.length; i++)
+			if (keys[i].name == keyname) {
+				//calculator.push(keys[i].value);
+				keys[i].click();
+				calcbody.scrollTop = 100000; // in lieu of		display.scrollToBottom();
+				e.preventDefault();
+				break;
+			}
+	}
+// push ((e.shiftKey||"0") + (e.ctrlKey||"0") + (e.altKey||"0") + (e.metaKey||"0"));
+}
+
+function keypress(elem, e) {
+	var charCode = e.keyCode;
+/**/ event = e;
+// push('"' + String.fromCharCode(charCode) + "+" + ((e.shiftKey||"0") + (e.ctrlKey||"0") + (e.altKey||"0") + (e.metaKey||"0")) + " (" + charCode + ") [" + (elem == ui.editline ? "editline" : "global") + "]" + '"');
+
+	if (charCode == 13) { // enter
+	   enter();
+	   return false;
+	}
+	else
+		return true;
+}
+
+function showEvent() {
+	var s="";
+	for (var i in event)
+		if (i == "MOUSEOUT")
+			break;
+		else if (typeof event[i] == "number")
+			s += i + ": " + event[i] + "\n";
+	alert(s);
+}
+
+if (document.addEventListener) {
+	document.addEventListener("DOMContentLoaded", onload, false);
+	document.addEventListener("keydown", keydown, false);
+}
+
+</script>
+</head>
+
+<body>
+
+<span id="categoryName">
+local
+</span>
+
+<div id="calcbody">
+</div>
+
+<form id="ui" action="" method="post">
+	<button type="button" class="softkey" name='Q' onclick="issue(this.value)"></button>
+	<button type="button" class="softkey" name='W' onclick="issue(this.value)"></button>
+	<button type="button" class="softkey" name='E' onclick="issue(this.value)"></button>
+	<button type="button" class="softkey" name='R' onclick="issue(this.value)"></button>
+	<button type="button" class="softkey" name='T' onclick="issue(this.value)"></button>
+	<button type="button" class="softkey" name='Y' onclick="issue(this.value)"></button>
+	<button type="button" class="softkey" name='U' onclick="issue(this.value)"></button>
+	<button type="button" class="softkey" name='I' onclick="issue(this.value)"></button>
+	<button type="button" class="softkey" name='O' onclick="issue(this.value)"></button>
+	<br>
+	<button type="button" class="fsoftkey" name='A' onclick="ui.editline.value += this.value"><sub class="sm">A</sub>START</button>
+	<button type="button" class="fsoftkey" name='S' onclick="ui.editline.value += this.value"><sub class="sm">S</sub>FOR</button>
+	<button type="button" class="fsoftkey" name='D' onclick="ui.editline.value += this.value"><sub class="sm">D</sub>NEXT</button>
+	<button type="button" class="fsoftkey" name='F' onclick="ui.editline.value += this.value"><sub class="sm">F</sub>IF</button>
+	<button type="button" class="fsoftkey" name='G' onclick="ui.editline.value += this.value"><sub class="sm">G</sub>THEN</button>
+	<button type="button" class="fsoftkey" name='H' onclick="ui.editline.value += this.value"><sub class="sm">H</sub>END</button>
+	<button type="button" class="fsoftkey" name='J' onclick="issue('@load')"><sub class="sm">J</sub>load</button>
+	<button type="button" class="fsoftkey" name='K' onclick="issue('STEQ')"><sub class="sm">K</sub>STEQ</button>
+	<button type="button" class="fsoftkey" name='L' onclick="showEvent()/*issue('DRAW')*/"><sub class="sm">L</sub>DRAW</button>
+	<br>
+	<button type="button" class="key" name='Z' onclick="issue('STO')"><sub class="sm">Z</sub>&#x2192;&#x229b;</button>
+	<button type="button" class="key" name='X' onclick="issue('RCL')"><sub class="sm">X</sub>&#x229b;&#x2192;</button>
+	<button type="button" class="editlinekey" name='C' onclick="issue('EVAL')"><sub class="sm">C</sub>&#x2318;</button>
+	<button type="button" class="editlinekey" name='V' onclick="issue('SWAP')"><sub class="sm">V</sub>&#x2325;</button>
+	<button type="button" name="calc" class="enterkey" onclick="enter()"><sub class="sm"></sub>&#x21e7;</button>
+	<button type="button" class="editlinekey" name='N' onclick="issue('DROP')"><sub class="sm">N</sub>&#x21d3;</button>
+	<button type="button" class="editlinekey" name='M' onclick="issue('ROLL')"><sub class="sm">M</sub>&#x21ba;</button>
+	<button type="button" name="args" class="key" onclick="issue('LASTARG')"><sub class="sm">.</sub>args</button>
+	<button type="button" name="undo" class="key" onclick="calculator.undo()"><sub class="sm">Del</sub>&#x238c;</button>
+	<br>
+	<div class="center">
+		<input type="button" class="editlinekey" name="edit" value="&#x21e9;" onclick="ui.editline.value = calculator.getFirstStackItem(); ui.editline.focus(); calculator.push('DROP')">
+		<input type="text" name="editline" size="42" onkeypress="return keypress(this, event)">
+		<input type="button" name="last" class="key" value="last" onclick="ui.editline.value = calculator.lastPushedEditLine; ui.editline.focus()">
+	</div>
+	<div class="center" style="width:100%">
+		<button type="button" class="key" onclick="issue('PURGE')">&#x2327;&#x229b;</button>
+		&emsp;&emsp;&emsp;
+		<input type="button" class="editlinekey" value="&#x226a;&#x226b;" onclick="ui.editline.value += '\u226a\u226b'">
+		<input type="button" class="editlinekey" value="''" onclick="ui.editline.value += this.value">
+		<input type="button" class="editlinekey" value="()" onclick="ui.editline.value += this.value">
+		<input type="button" class="editlinekey" value="[]" onclick="ui.editline.value += this.value">
+		<input type="button" class="editlinekey" value="{}" onclick="ui.editline.value += this.value">
+		<input type="button" class="editlinekey" value='""' onclick="ui.editline.value += this.value">
+		&emsp;&emsp;&emsp;
+		<button type="button" name="clear" class="editlinekey" onclick="issue('CLEAR')"><sub class="sm">.</sub>&#x2327;</button>
+		<button type="button" name="stop" class="editlinekey" onclick="display.showGraphics(false); calculator.show()">&#x2714;</button>
+	</div>
+</form>
+
+</body>
+</html>

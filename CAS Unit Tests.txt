@@ -1,0 +1,304 @@
+USE: You can run these commands in a JS debugger (like Chrome or Safari console) after loading calc.html.
+
+NOTE: For these commands, you'll also have to add add-ons/WolframAlphaAPI_CAS.js into the calc namespace.
+(Which you can do via injection API or by simply pasting its code into calc.js.)
+
+Enable caught error display:
+calculator.exec = function(cmd, msg, msg2, msg3) { alert(cmd + ": " + msg + ": " + msg2 + ": " + msg3); }
+
+
+CAS (Wolfram Alpha API integration):
+====================================
+
+subst:
+∫ \\u222b
+∂ \\u2202
+join(\"'\") join(\"\\u0027\")
+√ \\u221a
+λ \\u03bb
+^' ^\\u0027
+
+ME.expr["RISCH"]("'tan(x)'", "'x'") == "'-ln(cos(x))'"
+ME.expr["taylor"]("'tan(x)'", "'x'", 5) == "'x+x^3/3+(2*x^5)/15'"
+ME.expr["taylor"]("'-(log(cos(x)))/x'", "'x'", 5) == "'x/2+x^3/12+x^5/45'"
+ME.expr["subst"]("'tan(x)+x'", "'x=1'") == "'tan(1)+1'"
+
+integration:
+calculator.push("≪ 'sin(x)' 'x' Integrate ≫"); calculator.push("@eval"); /* '-cos(x)' */
+calculator.push("≪ 'sin(x^2)' 'x' Integrate ≫"); calculator.push("@eval"); /* '√(pi/2)*S(√(2/pi)*x)' */
+calculator.push("≪ 'e^(x^2)' 'x' Integrate ≫"); calculator.push("@eval"); /* '1/2*√(pi)*erfi(x)' */
+calculator.push("≪ '1/ln(x)' 'x' Integrate ≫"); calculator.push("@eval"); /* 'li(x)' */
+calculator.push("≪ '1/ln(x)' INTVX ≫"); calculator.push("@eval"); /* 'li(x)' */
+calculator.push("≪ '1/ln(x)' ∫ ≫"); calculator.push("@eval"); /* 'li(x)' */
+calculator.push("≪ '1/ln(x)' 'x' ∫ ≫"); calculator.push("@eval"); /* 'li(x)' */
+calculator.push("≪ 'tan(x)' 'x' RISCH ≫"); calculator.push("@eval"); /* '-ln(cos(x))'  */
+multiple:
+failing: calculator.push("≪ 'x*y' [x, y] Integrate ≫"); calculator.push("EVAL") /* 'c_1*x+c_2+(x^2*y^2)/4' */
+calculator.push("≪ 'x*y' [x, y] Integrate 'c_1=0' SUBST 'c_2=0' SUBST 0 1 ∫ ≫"); calculator.push("EVAL") /* */
+mixed:
+calculator.push("≪ '(x^2*y^2)/4' [x 0 2] Integrate ≫"); calculator.push("@eval"); /* '(2*y^2)/3' */
+
+
+numerical integration:
+calculator.push("≪ '-ln(cos(x))/x' 'x' 0 1 ∫ ≫"); calculator.push("EVAL") /* 0.275687273800437 */
+calculator.push("≪ '-ln(cos(x))/x' 'x' 0 bigF1 ∫ ≫"); calculator.push("EVAL") /* 0.27568727380043716388975206142159 */
+calculator.push("≪ 'x^2*sin(x^3)' 'x' 0 10 ∫ ≫"); calculator.push("EVAL") /* 0.145873641236432 */
+calculator.push("≪ 'x^2*sin(x^3)' 'x' 0 10 toBigF ∫ ≫"); calculator.push("EVAL") /* 0.1458736412364323363072502577982 */
+calculator.push("≪ 'x^2*sin(x^3)' 0 10 ∫ ≫"); calculator.push("EVAL") /* 0.145873641236432 */
+calculator.push("≪ 'x^2*sin(x^3)' 'x' ∫ ≫"); calculator.push("EVAL") /* '-1/3*cos(x^3)' */
+calculator.push("≪ 'x^2*sin(x^3)' ∫ ≫"); calculator.push("EVAL") /* '-1/3*cos(x^3)' */
+calculator.push("≪ 'cos(2*t-a*sin(t))' [t 0 π] NIntegrate ≫"); calculator.push("EVAL") /* [times out]  */
+calculator.push("≪ 'x^2*sin(x^3)' ['x' 0 10] NIntegrate ≫"); calculator.push("EVAL") /* 0.145873641236432 */
+calculator.push("≪ 'x^2*sin(x^3)' ['x' 0 '2*π'] NIntegrate ≫"); calculator.push("EVAL") /* 0.663606520561974 */
+calculator.push("≪ 'x^2*sin(x^3)' ['x' 0] 10 toBigF + NIntegrate ≫"); calculator.push("EVAL") /* 0.1458736412364323363072502577982 */
+calculator.push("≪ 'x^2*sin(x^3)' ['x' 0] 10 toBigF + NIntegrate ≫"); calculator.push("EVAL") /* 0.1458736412364323363072502577982 */
+calculator.push("≪ 0 10 'x^2*sin(x^3)' 'x' integrate ≫"); calculator.push("EVAL") /* 0.145873641236432 */
+calculator.push("≪ 0 10 toBigF 'x^2*sin(x^3)' 'x' integrate ≫"); calculator.push("EVAL") /* 0.1458736412364323363072502577982 */
+multiple:
+calculator.push("≪ 'x^2+4*y' [[x 11 14][y 7 10]] NIntegrate ≫"); calculator.push("EVAL") /* 1719 */
+calculator.push("≪ 'x*y' [[x 0 1][y 0 1]] NIntegrate ≫"); calculator.push("EVAL") /* 0.25 */
+calculator.push("≪ '(x^2*y^2)/4' [[x 0 2][y 0 1]] NIntegrate ≫"); calculator.push("EVAL") /* 0.222222222222222 */
+calculator.push("≪ 'x*y*z' [[x 0 1][y 0 1][z 0 1]] NIntegrate ≫"); calculator.push("EVAL") /* 0.125 */
+calculator.push("≪ 'tan(x*y)' [[x 0 1][y 0 1]] NIntegrate ≫"); calculator.push("EVAL") /* 0.275687273804347 */
+timed out:
+calculator.push("≪ 'tan(x*y*z*t*a*b)' [[x 0 1][y 0 1][z 0 1][t 0 1][a 0 1][b 0 1]] NIntegrate ≫"); calculator.push("EVAL") /* NaN (timed out) */
+not handled:
+numeric integration can yield a symbolic solution!
+calculator.push("≪ '0*x+0+(x^2*y^2)/4' [x 0 1] NIntegrate ≫"); calculator.push("EVAL") /* recalcs, returns nothing! */
+	NIntegrate[0*x+0+(x^2*y^2)/4, {x,0,1}]
+
+
+fail: calculator.push("≪ '2*x^2*y+3*y^2*z+z*x' ['x','y','z'] Derivative ≫"); calculator.push("@eval"); /* ['4*x*y+z', '2*(x^2+3*y*z)', 'x+3*y^2'] */
+/* D[ (((2*(x^2))*y)+((3*(y^2))*z))+(z*x),{{x,y,z}}]; Program execution error: Detail: missing delimiter: ) */
+
+calculator.push("≪ '2*x^2*y+3*y^2*z+z*x' [x,y,z] ∂ ≫"); calculator.push("@eval"); /* ['4*x*y+z', '2*(x^2+3*y*z)', 'x+3*y^2'] */
+calculator.push("≪ '2*x^2*y+3*y^2*z+z*x' [x,y,z] Derivative ≫"); calculator.push("@eval"); /* ['4*x*y+z', '2*(x^2+3*y*z)', 'x+3*y^2'] */
+calculator.push("≪ '2*x^2*y+3*y^2*z+z*x' [x] Derivative ≫"); calculator.push("@eval"); /* ['4*x*y+z'] */
+calculator.push("≪ '2*x^2*y+3*y^2*z+z*x' ['y'] Derivative ≫"); calculator.push("@eval"); /* ['2*(x^2+3*y*z)'] */
+calculator.push("≪ '2*x^2*y+3*y^2*z+z*x' 'y' Derivative ≫"); calculator.push("@eval"); /* '2*(x^2+3*y*z)' */
+calculator.push("≪ '2*x^2*y+3*y^2*z+z*x' 'y' D ≫"); calculator.push("@eval"); /* '2*(x^2+3*y*z)' */
+calculator.push("≪ '2*x^2' DERIVX ≫"); calculator.push("@eval"); /* '4*x' */
+calculator.push("≪ '2*x^2+2*y^3' DERIVX ≫"); calculator.push("@eval"); /* '4*x' */
+wrong: calculator.push("≪ '2*X^2' ∂ ≫"); calculator.push("@eval"); /* '4*X' */ /* D[ 2*(X^2),{X}] should be D[ 2*(X^2),X] */
+calculator.push("≪ '2*X^2' 'X' ∂ ≫"); calculator.push("@eval"); /* '4*X' */
+calculator.push("≪ '2*x^2*y+3*y^2*z+z*x' [x,y,z] ∂ ≫"); calculator.push("@eval"); /* ['4*x*y+z', '2*(x^2+3*y*z)', 'x+3*y^2'] */
+/* D[ (((2*(x^2))*y)+((3*(y^2))*z))+(z*x),{{x,y,z}}] ; Program execution error: Detail: missing delimiter: )*/
+
+calculator.push("≪ ∂(2*x^2*y+3*y^2*z+z*x,[x,y,z]) ≫"); calculator.push("@eval"); /* ['4*x*y+z', '2*(x^2+3*y*z)', 'x+3*y^2'] */
+
+Polynomials:
+calculator.push("≪ 'x^3+6*x^2+11*x+6' 'x^2+5*x+6' 'x' PolynomialQuotient ≫"); calculator.push("@eval"); /* 'x+1' */
+calculator.push("≪ 'x^3+6*x^2+11*x+6' 'x^2+5*x+6' QUOT ≫"); calculator.push("@eval"); /* 'x+1' */
+calculator.push("≪ 'x^3+6*x^2+11*x+6' 'x^2+5*x+6' 'x' PolynomialRemainder ≫"); calculator.push("@eval"); /* 0 */
+calculator.push("≪ 'x^2' 'x+a' 'x' PolynomialRemainder ≫"); calculator.push("@eval"); /* 'a^2' */
+calculator.push("≪ 'x^3+6*x^2+11*x+6' 'x^2+5*x+6' REMAINDER ≫"); calculator.push("@eval"); /* 0 */
+calculator.push("≪ 'x^2+x+1' '2*x+4' 'x' PolynomialQuotientRemainder ≫"); calculator.push("@eval"); /* [ 'x/2-1/2' 3 ] */
+calculator.push("≪ 'x^2+x+1' '2*x+4' DIV2 ≫"); calculator.push("@eval"); /* [ 'x/2-1/2' 3 ] */
+calculator.push("≪ 'x^3+y^3' ['x^2-y^2-1', 'x+2*y-7'] [x y] PolynomialReduce ≫"); calculator.push("@eval"); /* [[ x y^2+1 ] '-y^3+7*y^2-2*y+7'] */
+
+
+
+WA family:
+calculator.push('≪ 20 "Cyclotomic" WA ≫'); calculator.push("@eval"); /* 'x^8-x^6+x^4-x^2+1' */
+calculator.push('≪ "Cyclotomic 20" evalWA ≫'); calculator.push("@eval"); /* 'x^8-x^6+x^4-x^2+1' */
+calculator.push('≪ 4.5677 "W_2[" WA ≫'); calculator.push("@eval"); /* (-0.874385, 10.9156) */ /* analytic continuation of the product log function */
+calculator.push('≪ \'x^2\' "D[" {"pod": "Input" } WAopt ≫'); calculator.push("@eval"); /* 'd/dx(x^2)=2*x' */
+calculator.push('≪ \'x^2\' "D[" {"pod": "Input", "right": true } WAopt ≫'); calculator.push("@eval"); /* '2*x' */
+calculator.push('≪ "San Francisco" "population" WA ≫'); calculator.push("@eval"); /* '805235*people**(country*rank:*13th)**(2010*estimate)' */
+calculator.push('≪ "San Francisco" "population" {"expr": true, "erase": /.people.+/ } WAopt ≫'); calculator.push("@eval"); /* 805235 */
+
+failing:
+calculator.push('≪ .2756872738 "Identify[" WA ≫'); calculator.push("@eval"); /*  */
+calculator.push('≪ "Identify[.2756872738]" evalWA ≫'); calculator.push("@eval"); /*  */
+
+
+calculator.push("≪ 0.5 erfi ≫"); calculator.push("@eval"); /* 0.614952094696511  */
+calculator.push("≪ 0.5 C ≫"); calculator.push("@eval"); /* 0.492344225871446 */
+calculator.push("≪ 0.5 S ≫"); calculator.push("@eval"); /* 0.064732432859999 */
+calculator.push("≪ 0.8 nCDFi_lo ≫"); calculator.push("@eval"); /* 0.841621233572914 */
+calculator.push("≪ (0.5, 0.8) erfi ≫"); calculator.push("@eval"); /* (0.28851, 0.869945) */
+calculator.push("≪ (0.5, 0.8) C ≫"); calculator.push("@eval"); /* (0.420532, 0.978019) */
+calculator.push("≪ (0.5, 0.8) S ≫"); calculator.push("@eval"); /* (-0.479225, -0.00188725) */
+
+
+
+calculator.push("≪ 'tan(x)' 'x' 5 taylor ≫"); calculator.push("@eval"); /* 'x+x^3/3+(2*x^5)/15' */
+calculator.push("≪ 'tan(x)' 'x' 20 TAYLR ≫"); calculator.push("@eval"); /* 'x+x^3/3+(2*x^5)/15+(17*x^7)/315+(62*x^9)/2835+(1382*x^11)/155925+(21844*x^13)/6081075+(929569*x^15)/638512875+(6404582*x^17)/10854718875+(443861162*x^19)/1856156927625+(18888466084*x^21)/194896477400625' */
+calculator.push("≪ 'cos(x)' TAYLOR0 ≫"); calculator.push("@eval"); /* '1-x^2/2+x^4/24' */
+calculator.push("≪ 'tan(x)' [x 0 20] Series ≫"); calculator.push("@eval"); /* 'x+x^3/3+(2*x^5)/15+(17*x^7)/315+(62*x^9)/2835+(1382*x^11)/155925+(21844*x^13)/6081075+(929569*x^15)/638512875+(6404582*x^17)/10854718875+(443861162*x^19)/1856156927625+(18888466084*x^21)/194896477400625' */
+calculator.push("≪ '(X^3+4*X+12)/(11*X^11+1)' [X 0 4] Series ≫"); calculator.push("@eval"); /* '12+4*X+X^3' */
+calculator.push("≪ '(X^3+4*X+12)/(11*X^11+1)' [X 1 4] Series ≫"); calculator.push("@eval"); /* '17/12-(1973*(X-1))/144+(115745*(X-1)^2)/1728-(4122557*(X-1)^3)/20736+(67549097*(X-1)^4)/248832' */
+calculator.push("≪ 'X^3+4*X+12' '11*X^11+1' 4 DIVPC ≫"); calculator.push("@eval"); /* '12+4*X+X^3' */
+calculator.push("≪ '(x+2)*(x+3)' expand ≫"); calculator.push("@eval"); /* 'x^2+5*x+6' */
+calculator.push("≪ '(x^2+2*x+1)/(x+1)' EXPAND ≫"); calculator.push("@eval"); /* 'x+1' */
+calculator.push("≪ ['x^2*y', 'x^2*y', 'y^2*z'] Curl ≫"); calculator.push("@eval"); /* ['2*y*z',0,'-x*(x-2*y)'] */
+calculator.push("≪ { 'x^2 + z', 'y*sin(x)', 'e^(3*z)' } Div ≫"); calculator.push("@eval"); /* '2*x+sin(x)+3*e^(3*z)' */
+calculator.push("≪ { 'x^2*y', 'x^2*y', 'y^2*z' } [x y z] DIV ≫"); calculator.push("@eval"); /* '(x+y)^2' */
+calculator.push("≪ 'x^2+5*x+6' Factor ≫"); calculator.push("@eval"); /* '(x+2)*(x+3)' */
+calculator.push("≪ 'x^2+5*x+6' FACTOR ≫"); calculator.push("@eval"); /* '(x+2)*(x+3)' */
+/*remove?*/calculator.push("≪ 'x^2+4*x+4' factorize ≫"); calculator.push("@eval"); /* '(x+2)*(x+3)' */
+
+calculator.push("≪ 'x^2+5*x+6' simplify ≫"); calculator.push("@eval"); /* [ '(x+2)*(x+3)' 'x*(x+5)+6' 'x^2+5*x+6' ] */
+calculator.push("≪ 'log(sin(x))-log(cos(x))' simplify ≫"); calculator.push("@eval"); /* [ 'ln(sin(x))-ln(cos(x))' 'ln(1/2*i*(e^(-i*x)-e^(i*x)))-ln(1/2*(e^(-i*x)+e^(i*x)))' ] */
+calculator.push("≪ 'log(2*x)*(4*e^x)' simplify ≫"); calculator.push("@eval"); /* [ '4*e^x*ln(2*x)' '4*e^x*(ln(x)+ln(2))' '4*e^x*ln(x)+4*e^x*ln(2)' ] */
+calculator.push("≪ 'simplify(x^2+x^3)' EVAL ≫"); calculator.push("@eval"); /* x^2*(x+1) */
+
+calculator.push("≪ 'sin(2*x)+cos(2*x)' TrigFactor ≫"); calculator.push("@eval"); /* '√(2)*sin(2*x+pi/4)' */
+calculator.push("≪ 'sin(2*x)+cos(2*x)' TCOLLECT ≫"); calculator.push("@eval"); /* '√(2)*sin(2*x+pi/4)' */
+calculator.push("≪ '2*cos(x)^2' TrigReduce ≫"); calculator.push("@eval"); /* 'cos(2*x)+1' */
+calculator.push("≪ 'sin(2*x)' TrigExpand ≫"); calculator.push("@eval"); /* '2*sin(x)*cos(x)' */
+calculator.push("≪ 'cos(x)' TrigToExp ≫"); calculator.push("@eval"); /* 'e^(-i*x)/2+e^(i*x)/2' */
+calculator.push("≪ 'e^(i*x)' ExpToTrig ≫"); calculator.push("@eval"); /* 'cos(x)+i*sin(x)' */
+calculator.push("≪ 'sin(x+i*y)' ComplexExpand ≫"); calculator.push("@eval"); /* 'sin(x)*cosh(y)+i*cos(x)*sinh(y)' */
+calculator.push("≪ 'cos(x)^4' TLIN ≫"); calculator.push("@eval"); /* '1/8*(4*cos(2*x)+cos(4*x)+3)' */
+calculator.push("≪ 'log(x+x)' TSIMP ≫"); calculator.push("@eval"); /* '(ln(x)+ln(2))/(ln(2)+ln(5))' */
+calculator.push("≪ 'ln(sin(x+y))' TEXPAND ≫"); calculator.push("@eval"); /* 'ln(1/2*i*(e^(-i*x-i*y)-e^(i*x+i*y)))' */
+not yet:
+calculator.push("≪ 'ln(x+i)' TRIG ≫"); calculator.push("@eval"); /*  */
+
+
+calculator.push("≪ 20 Cyclotomic ≫"); calculator.push("@eval"); /* 'x^8-x^6+x^4-x^2+1' */
+calculator.push("≪ 5 'x' ChebyshevT ≫"); calculator.push("@eval"); /* '16*x^5-20*x^3+5*x' */
+calculator.push("≪ 5 TCHEBYCHEFF ≫"); calculator.push("@eval"); /* '16*X^5-20*X^3+5*X' */
+calculator.push("≪ 5 'x' ChebyshevU ≫"); calculator.push("@eval"); /* '32*x^5-32*x^3+6*x' */
+calculator.push("≪ 4 'x' HermiteH ≫"); calculator.push("@eval"); /* '16*x^4-48*x^2+12' */
+calculator.push("≪ 4 HERMITE ≫"); calculator.push("@eval"); /* '16*X^4-48*X^2+12' */
+calculator.push("≪ 4 't' LegendreP ≫"); calculator.push("@eval"); /* '1/8*(35*t^4-30*t^2+3)' */
+calculator.push("≪ 4 LEGENDRE ≫"); calculator.push("@eval"); /* '1/8*(35*X^4-30*X^2+3)' */
+calculator.push("≪ 4 'X' LaguerreL ≫"); calculator.push("@eval"); /*  '1/24*(x^4-16*x^3+72*x^2-96*x+24)' */
+calculator.push('≪ "LaguerreL" [4, p] orthopoly ≫'); calculator.push("@eval"); /*  '1/24*(p^4-16*p^3+72*p^2-96*p+24)' */
+calculator.push('≪ "LaguerreL" [4, p] orthopoly ≫'); calculator.push("@eval"); /*  '1/24*(p^4-16*p^3+72*p^2-96*p+24)' */
+calculator.push('≪ "SphericalHarmonicY" [3, 1, theta, phi] orthopoly ≫'); calculator.push("@eval"); /* '-1/8*√(21/π)*e^(i*phi)*sin(theta)*(5*cos^2(theta)-1)' */
+calculator.push('≪ "SphericalHarmonicY" [3, 1, θ, ϕ] orthopoly ≫'); calculator.push("@eval"); /* '-1/8*√(21/π)*e^(i*phi)*sin(theta)*(5*cos^2(theta)-1)' */
+calculator.push('≪ "SphericalHarmonicY" [3, 1, θ, φ] orthopoly ≫'); calculator.push("@eval"); /* '-1/8*e^(i/2+(i*√(5))/2)*√(21/π)*sin(theta)*(5*cos^2(theta)-1)' */
+calculator.push('≪ "JacobiP" [2, a, b, z] orthopoly ≫'); calculator.push("@eval"); /* '1/8*(z-1)^2*(a+b+3)*(a+b+4)+1/2*(a+2)*(z-1)*(a+b+3)+1/2*(a+1)*(a+2)' */
+
+
+calculator.push("≪ 'x^2-17=x^3+2*x' 'x' Exponent ≫"); calculator.push("@eval"); /* 3 */
+calculator.push("≪ 'x^2-17=x^3+2*x' 'y' Exponent ≫"); calculator.push("@eval"); /* 0 */
+calculator.push("≪ 'x^2-17=x^3+2*x' DEGREE ≫"); calculator.push("@eval"); /* 3 */
+
+
+calculator.push("≪ 'd1y(x)=2*x+1' 'y(x)' DESOLVE ≫"); calculator.push("@eval"); /* ['x+x^2+C'] */
+calculator.push("≪ 'd1y(x)+2*y(x)=e^(3*x)' 'y(x)' DESOLVE ≫"); calculator.push("@eval"); /* [ 'e^(3*x)/5+e^(-2*x)*C[1]' ] */
+calculator.push("≪ 'd1y(x)+y(x)=sin(x)' 'y(x)' DESOLVE ≫"); calculator.push("@eval"); /* ['e^(-x)*C[1]+1/2*(-cos[x]+sin[x])'] */
+calculator.push("≪ 'd1y(x)*cos(x)=sin(2*x)' 'y(x)' DESOLVE ≫"); calculator.push("@eval"); /* ['C[1]-2*cos(x)'] */
+calculator.push("≪ 'd1y(x)*cos(x) = sin(2*x)' 'y(x)' DESOLVE ≫"); calculator.push("@eval"); /* ['C[1]-2*cos(x)'] */
+calculator.push("≪ 'D1y(x)*cos(x)=sin(2*x)' 'y(x)' DESOLVE ≫"); calculator.push("@eval"); /* ['C[1]-2*cos(x)'] */
+calculator.push("≪ 'd1y(x)*e^x=e^(3*x)' 'y(x)' DESOLVE ≫"); calculator.push("@eval"); /* ['e^(2*x)/2 + C[1]'] */
+calculator.push("≪ 'd1y(x)*2*y(x)=exp(3*x)' 'y(x)' 'x' desolve ≫"); calculator.push("@eval"); /* [ '-√(e^(3*x)+6*C[1])/√(3)' '√(e^(3*x)+6*C[1])/√(3)' ] */
+
+calculator.push("≪ 3 HILBERT ≫"); calculator.push("@eval"); /* [[ 1 '1/2' '1/3' ] [ '1/2' '1/3' '1/4' ] [ '1/3' '1/4' '1/5' ]] */
+calculator.push("≪ HilbertMatrix(4) ≫"); calculator.push("@eval"); /* [[ 1 '1/2' '1/3' '1/4' ] [ '1/2' '1/3' '1/4' '1/5' ] [ '1/3' '1/4' '1/5' '1/6' ] [ '1/4' '1/5' '1/6' '1/7' ]] */
+calculator.push("≪ HilbertMatrix([3,4]) ≫"); calculator.push("@eval"); /* [[ 1 '1/2' '1/3' '1/4' ] [ '1/2' '1/3' '1/4' '1/5' ]] */
+calculator.push("≪  ≫"); calculator.push("@eval"); /*  */
+calculator.push("≪  ≫"); calculator.push("@eval"); /*  */
+calculator.push("≪  ≫"); calculator.push("@eval"); /*  */
+calculator.push("≪  ≫"); calculator.push("@eval"); /*  */
+
+Plotting:
+calculator.push("≪ 'LegendreP(10, x)' {x, -1, 1} plot ≫"); calculator.push("@eval"); /* graph */
+calculator.push("≪ plot(LegendreP(10, x), [x, -1, 1]) ≫"); calculator.push("@eval"); /* graph */
+calculator.push("≪ 'sin(x)' [x, -1, 6*pi] plot ≫"); calculator.push("@eval"); /* graph */
+calculator.push("≪ plot(sin(x), [x, -1, 6*pi]) ≫"); calculator.push("@eval"); /* graph */
+calculator.push("≪ ['sin(x)', 'sin(2*x)', 'sin(3*x)'] {x, 0, 2*pi} plot ≫"); calculator.push("@eval"); /* graph */
+calculator.push("≪ ['sin(x)', 'LaguerreL(5, x)'] {x, 0, 2*pi} plot ≫"); calculator.push("@eval"); /* graph */
+failing:
+calculator.push("≪ plot(SphericalHarmonicY(3, 1, 0.5, x), [x, -pi, pi]) ≫"); calculator.push("@eval"); /*  */
+not plotting:
+calculator.push("≪ 'plot(sin(x), [x, -1, 6*pi])' EVAL ≫"); calculator.push("@eval"); /*  */
+
+
+
+failing: calculator.push("≪ ['x^2+y^2=1', '(x-2)^2+(y-1)^2=4'] solve ≫"); calculator.push("@eval"); /* [ 'x=0 and y=1' 'x=4/5 and y=-3/5' ]  */
+failing: calculator.push("≪ '3.8^98' solve ≫"); calculator.push("@eval"); /* 6.5885897827574538991039790322691172146294557523073304e+56  */
+calculator.push("≪ 'sin(x)' solve ≫"); calculator.push("@eval"); /* [ 'x=2*pi*n and n∈Z' 'x=2*pi*n+pi and n∈Z' ]  */
+calculator.push("≪ 'e^x' solve ≫"); calculator.push("@eval"); /* "no solutions exist" */
+calculator.push("≪ 'sin(x)' 'x' solveFor ≫"); calculator.push("@eval"); /* [ 'x=2*pi*n and n∈Z' 'x=2*pi*n+pi and n∈Z' ]  */
+calculator.push("≪ '3*Y+SIN(X)/e^X=1/Y' 'Y' SOLVE ≫"); calculator.push("@eval"); /*  [ 'e^X!=0 and Y=-1/6*e^(-X)*(√(12*e^(2*X)+sin^2(X))+sin(X))' 'e^X!=0 and Y=1/6*e^(-X)*(√(12*e^(2*X)+sin^2(X))-sin(X))' ] */
+failing: calculator.push("≪ 'X^3-X-9' 'X' SOLVE right toNumber toNumber ≫"); calculator.push("@eval"); /* [ 2.24004098746944, (-1.12002049373472, -1.66232900448656), (-1.12002049373472, 1.66232900448656) ] */
+calculator.push("≪ ['X^4-1=3' 'X^2-A=0'] 'X' SOLVE ≫"); calculator.push("@eval"); /* [ 'A=-2 and X=±(i*√(2))' 'A=2 and X=±√(2)' ] */
+calculator.push("≪ 'X^3-X-9' SOLVEVX ≫"); calculator.push("@eval"); /*[ 'X=1/3*(243/2-(3*√(6549))/2)^(1/3)+(1/2*(81+√(6549)))^(1/3)/3^(2/3)' 'X=-1/6*(1-i*√(3))*(243/2-(3*√(6549))/2)^(1/3)-((1+i*√(3))*(1/2*(81+√(6549)))^(1/3))/(2*3^(2/3))' 'X=-1/6*(1+i*√(3))*(243/2-(3*√(6549))/2)^(1/3)-((1-i*√(3))*(1/2*(81+√(6549)))^(1/3))/(2*3^(2/3))' ] */
+calculator.push("≪ 'x^5+x+1=0' 'x' NSolve ≫"); calculator.push("@eval"); /* [ '-0.5-0.866025*i' '-0.5+0.866025*i' -0.754878 '0.877439-0.744862*i' '0.877439+0.744862*i' ] */
+calculator.push("≪ 'x^5+x+1=0' [x,-1] FindRoot ≫"); calculator.push("@eval"); /* [ 'x->-0.754878' ] */
+calculator.push("≪ ['x=ln(y)' 'y=ln(x)'] [[x I], [y 2]] FindRoot ≫"); calculator.push("@eval"); /*  [ 'x->0.318132+1.33724*i' 'y->0.318132+1.33724*i' ] */
+
+calculator.push("≪ 'e^x' LAP ≫"); calculator.push("@eval"); /* '1/(s-1)' */
+calculator.push("≪ 'e^x*cos(z*y)' [x y z] LaplaceTransform ≫"); calculator.push("@eval"); /* '(e^x*cos(y*z))/s' */
+calculator.push("≪ 'e^x*cos(z*y)' [x y z] LAPL ≫"); calculator.push("@eval"); /* '(e^x*cos(y*z))/s' */
+calculator.push("≪ '1/(x-5)^2' ILAP ≫"); calculator.push("@eval"); /* 'e^(5*t)*t' */
+calculator.push("≪ '1/(x-5)^2' 'x' InverseLaplaceTransform ≫"); calculator.push("@eval"); /* 'e^(5*t)*t' */
+
+calculator.push("≪ '' solve ≫"); calculator.push("@eval"); /*  */
+calculator.push("≪ '' solve ≫"); calculator.push("@eval"); /*  */
+calculator.push("≪ '' solve ≫"); calculator.push("@eval"); /*  */
+
+
+calculator.push("≪ [[4 1][2 -1]] eigenvectors ≫"); calculator.push("@eval"); /* [[ '1/2+1/4*(3+√(33))' 1 ][ '1/2+1/4*(3-√(33))' 1 ]] */
+calculator.push("≪ [[4 1][2 -1]] eigenvalues ≫"); calculator.push("@eval"); /* [ '1/2*(3+√(33))' '1/2*(3-√(33))' ] */
+calculator.push("≪ [[4 1][2 -1]] EGV ≫"); calculator.push("@eval"); /* [[ '1/2+1/4*(3+√(33))' 1 ] [ '1/2+1/4*(3-√(33))' 1 ]] [ '1/2*(3+√(33))' '1/2*(3-√(33))' ]  */
+calculator.push("≪ [[1 1][1 5]] Cholesky ≫"); calculator.push("@eval"); /* [[1 1][0 2]] */
+calculator.push("≪ [[3 1][1 x]] Cholesky ≫"); calculator.push("@eval"); /* [[ '√(3)' '1/√(3)' ] [ 0 '√(-1/3+x)' ]] */
+
+calculator.push("≪ [[4 1][2 -1]] EGV toNumber √ OVER SIZE DIAG→ OVER toNumber INV * * toNumber ≫"); calculator.push("@eval"); /*  */
+calculator.push("≪ 6 11 3 IABCUV ≫"); calculator.push("@eval"); /* [ '11*n+6' '-6*n-3' ] */
+calculator.push("≪ {3, 4} {4, 5} ICHINREM ≫"); calculator.push("@eval"); /* 19 */
+calculator.push("≪ [{3, 4} {4, 5}] ChineseRemainder ≫"); calculator.push("@eval"); /* 19 */
+calculator.push("≪ {2, 3} {1, 5} ICHINREM ≫"); calculator.push("@eval"); /* 11 */
+calculator.push("≪ [{2, 1} {3, 5}] ChineseRemainder ≫"); calculator.push("@eval"); /* 11 */
+
+
+calculator.push("≪ 'y+5=1+x^2' right ≫"); calculator.push("@eval"); /* '1+x^2' */
+calculator.push("≪ [ 'x=0' 'y=1+x^2' ] right ≫"); calculator.push("@eval"); /* [ '0' '1+x^2' ]  */
+calculator.push("≪ [[ 'x=0' 'y=1+x^2' ][ 'x=4/5' 'y=-3/5' ]] right ≫"); calculator.push("@eval"); /* [[ '0' '1+x^2' ][ '4/5' '3/5' ]]  */
+
+
+calculator.push('≪ [[3,6,0],[2,4,1],[1,1,1]] charpoly ≫'); calculator.push("@eval"); /* '-λ^3+8*λ^2-6*λ+3' */
+failing: calculator.push('≪ [3,4,5,2,1] P2C ≫'); calculator.push("@eval"); /* (1 3 5) (2 4) */
+
+Multiple integration (http://www.hpmuseum.org/cgi-sys/cgiwrap/hpmuseum/archv020.cgi?read=207178):
+calculator.push("≪ 3 'x' TAN 'x' ROT TAYLR 'x' 'a' 'b' 'c' 'd' 'f' 'g' * * * * * = SUBST 'a' RISCH 'b' RISCH 'c' RISCH 'd' RISCH 'f' RISCH 'g' RISCH 'a' 1 = SUBST 'b' 1 = SUBST 'c' 1 = SUBST 'd' 1 = SUBST 'f' 1 = SUBST 'g' 1 = SUBST →NUM ≫"); calculator.push("@eval"); /* 0.0157063802083333 */
+
+Numerical BigFloat integration:
+calculator.push("≪ 200 setBigFPrecision 0 10 'x^2*sin(x^3)' 'x' NIntegrate ≫"); calculator.push("EVAL")
+
+calculator.push("≪ 200 setBigFPrecision 'pi' asBigFloat ≫"); calculator.push("EVAL") /* 3.1415926535897932384626433832795028841971... */
+calculator.push("≪ 'π' 50 N ≫"); calculator.push("EVAL") /* 3.1415926535897932384626433832795028841971 */
+calculator.push("≪ 'e' asBigFloat ≫"); calculator.push("EVAL") /* 2.7182818284590452353602874713527...*/
+
+
+failing:
+calculator.push("≪ 3 'tan(x*y)' 'y' RISCH 'y=1' SUBST 'x' ROT TAYLR 'x=a*b*c*d*f' SUBST 'a' RISCH 'b' HALT RISCH 'c' RISCH 'd' RISCH 'f' RISCH 'a=1' SUBST 'b=1' SUBST 'c=1' SUBST 'd=1' SUBST 'f=1' SUBST →NUM ≫"); calculator.push("@eval"); /* 0.0157063802083333 */
+calculator.push("≪ 3 'tan(X*Y)' 'Y' RISCH 'Y=1' SUBST 'X' ROT TAYLR 'X=1' SUBST ≫"); calculator.push("@eval"); /* '1/2+1^3/12+1^5/45' */
+calculator.push("≪ 'x^2+1' 'x-1' PolynomialExtendedGCD ≫"); calculator.push("@eval"); /*  */
+calculator.push("≪ 'x^2+1' 'x-1' EGCD ≫"); calculator.push("@eval"); /*  */
+calculator.push("≪ [[(4,3) 1][2 -1]] eigenvectors ≫"); calculator.push("@eval"); /*  */
+calculator.push("≪ [['u' 'v']['v' 'u']] Inverse ≫"); calculator.push("@eval"); /*  */
+calculator.push("≪ [[u v][v u]] Inverse ≫"); calculator.push("@eval"); /*  */
+calculator.push("≪ 'sqrt(x)' 'x' 5 taylor ≫"); calculator.push("@eval"); /* no result */
+calculator.push("≪ (3, 8) erfi ≫"); calculator.push("@eval"); /*  */
+w/ evaluable expression:
+calculator.push("≪ 'e^x - x + 9/10^4 + 1/(10^4*ln(2) + sqrt(10)/6)^2=20' 'x' SOLVE ≫"); calculator.push("@eval"); /* something big but truncated because expression comes in non-exact: Solve[((((e^x)-x)+(0.0009))+(1/((((10000)*(ln(2)))+((sqrt(10))/6))^2)))=(20), x]  */
+calculator.push("≪ 'e^pi - pi + 9/10^4 + 1/(10^4*ln(2) + sqrt(10)/6)^2=x' 'x' SOLVE ≫"); calculator.push("@eval"); /* 'x~~20.' */
+calculator.push("≪ 'e^pi - pi + 9/10^4 + 1/(10^4*ln(2) + sqrt(10)/6)^2' EVAL ≫"); calculator.push("@eval"); /* '(((e^(pi))-(pi))+(9/(10000)))+(1/((((10000)*(ln(2)))+((sqrt(10))/6))^2))' */
+w/o evaluable expression:
+calculator.push("≪ 'e^x - x + 9/10^4 + 1/(10^4*ln(2) + sqrt(10)/6)^2=20' 'x' SOLVE ≫"); calculator.push("@eval"); /* something big including W_n(): Solve[e^x - x + 9/10^4 + 1/(10^4*ln(2) + sqrt(10)/6)^2=20, x] */
+calculator.push("≪ 'e^x - x + 9/10^4 + 1/(10^4*ln(2) + sqrt(10)/6)^2=20' 'x' SOLVE right noand 'W_n=W_2' SUBST 32 N ≫"); calculator.push("@eval"); /* */
+calculator.push("≪ 'e^pi - pi + 9/10^4 + 1/(10^4*ln(2) + sqrt(10)/6)^2' asBigFloat ≫"); calculator.push("@eval"); /* 20.000000000000000729511118583828 */
+calculator.push("≪ 250 setBigFPrecision 'e^pi - pi + 9/10^4 + 1/(10^4*ln(2) + sqrt(10)/6)^2' asBigFloat ≫"); calculator.push("@eval"); /* 20.000000000000000729511118583828 */
+calculator.push("≪ 'e^pi - pi + 9/10^4 + 1/(10^4*ln(2) + sqrt(10)/6)^2=x' 'x' SOLVE ≫"); calculator.push("@eval"); /* 'x~~20.' */
+calculator.push("≪ 'e^pi - pi + 9/10^4 + 1/(10^4*ln(2) + sqrt(10)/6)^2=x' 'x' NSolve ≫"); calculator.push("@eval"); /* 20 */
+even though:
+N[e^pi - pi + 9/10^4 + 1/(10^4*ln(2) + sqrt(10)/6)^2, 32] /* 20.0..7295... */
+same as
+N[((((e^pi)-pi)+(0.0009))+(1/((((10000)*(ln(2)))+((sqrt(10))/6))^2))), 32] /* same  */
+
+
+failing algebraic:
+calculator.push("≪ 'expand((x^2+x+4)^2)' EVAL ≫"); calculator.push("@eval"); /* x^4+2*x^3+9*x^2+8*x+16 */
+calculator.push("≪ expand((x^2+x+4)^2) ≫"); calculator.push("@eval"); /* x^4+2*x^3+9*x^2+8*x+16 */
+calculator.push("≪ 'D(2*x^2, x)' EVAL ≫"); calculator.push("@eval"); /* '4*X' */
+works: ME.expr["Derivative"]("2*x^2", "x") == "'4*x'"; /* true */
+calculator.push("≪ D(2*x^2,x) ≫"); calculator.push("@eval"); /* '4*X' */
+calculator.push("≪ DERIVX(2*x^2) ≫"); calculator.push("@eval"); /* '4*X' */
+calculator.push("≪ 'desolve(d1y(x)*2*y(x)=exp(3*x), y(x), x)' EVAL ≫"); calculator.push("@eval"); /* because "=" is inside function args [ '-√(e^(3*x)+6*C[1])/√(3)' '√(e^(3*x)+6*C[1])/√(3)' ] */
